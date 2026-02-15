@@ -598,6 +598,45 @@ input.input-invalid {
     color: #d32f2f;
 }
 
+/* Yield Mode Toggle */
+.yield-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-color);
+    border-radius: 6px;
+}
+
+.yield-mode-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.yield-mode-hint {
+    display: block;
+    font-size: 0.82rem;
+    color: #666;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .container {

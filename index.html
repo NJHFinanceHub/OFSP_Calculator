@@ -49,6 +49,11 @@
 
                 <fieldset>
                     <legend>Key Model Inputs</legend>
+                    <div class="yield-mode-toggle">
+                        <span class="yield-mode-label">Yield calculation mode:</span>
+                        <label class="radio-label"><input type="radio" name="yield_mode" value="per_hectare" checked> Yield per Hectare <span class="tooltip-icon" data-tooltip="Use tons/ha as the primary yield driver. Potato counts are derived backward from tonnage. This matches how agronomists typically think about yield.">i</span></label>
+                        <label class="radio-label"><input type="radio" name="yield_mode" value="per_plant"> Per Plant <span class="tooltip-icon" data-tooltip="Calculate tonnage from individual plant output (slips x potatoes/plant x grams). Use this when you know plant-level productivity.">i</span></label>
+                    </div>
                     <div class="form-grid">
                         <label for="initial_slips">Initial Slips <span class="tooltip-icon" data-tooltip="Number of vine slips planted in Generation 1. Typical range: 100,000 - 5,000,000.">i</span></label>
                         <input type="number" id="initial_slips" value="1200000" min="1" required>
@@ -62,8 +67,8 @@
                         <label for="hectares_gen_3">Hectares (Gen 3) <span class="tooltip-icon" data-tooltip="Land area for Generation 3. Typically the largest planting area.">i</span></label>
                         <input type="number" step="0.1" id="hectares_gen_3" value="895.71" min="0.1" required>
 
-                        <label for="tons_per_hectare">Tons per Hectare (Yield) <span class="tooltip-icon" data-tooltip="Expected yield in tons per hectare. OFSP typically yields 10 - 25 tons/ha depending on conditions.">i</span></label>
-                        <input type="number" step="0.1" id="tons_per_hectare" value="15" min="0.1" required>
+                        <label for="tons_per_hectare">Tons per Hectare (Yield) <span class="tooltip-icon" data-tooltip="Expected yield in metric tons per hectare. Moderate smallholder with improved varieties: 5-20 t/ha. Default 10 for northern Haiti rainfed conditions.">i</span></label>
+                        <input type="number" step="0.1" id="tons_per_hectare" value="10" min="0.1" required>
 
                         <label for="tons_harvest_percent">Harvest % for Tonnage <span class="tooltip-icon" data-tooltip="Fraction of total production that is harvestable. 0.90 = 90% harvest efficiency. Range: 0.01 - 1.0.">i</span></label>
                         <input type="number" step="0.01" id="tons_harvest_percent" value="0.90" min="0.01" max="1" required>
@@ -71,28 +76,28 @@
                 </fieldset>
 
                 <fieldset>
-                    <legend>Regeneration & Loss Factors</legend>
+                    <legend>Regeneration & Survival Rates</legend>
                     <div class="form-grid">
-                        <label for="potatoes_per_plant">Potatoes per Plant <span class="tooltip-icon" data-tooltip="Average number of tubers each plant produces. Typical range: 2 - 8.">i</span></label>
-                        <input type="number" id="potatoes_per_plant" value="4" min="1" required>
+                        <label for="potatoes_per_plant">Potatoes per Plant <span class="tooltip-icon" data-tooltip="Average number of tubers each plant produces. Tropical avg 4-8.">i</span></label>
+                        <input type="number" id="potatoes_per_plant" value="5" min="1" required>
 
-                        <label for="vine_cuttings_per_plant">Vine Cuttings (per plant) <span class="tooltip-icon" data-tooltip="Number of vine cuttings taken from each surviving plant for sub-generations (1a, 1b, 1c, etc.). Typical: 2 - 5.">i</span></label>
-                        <input type="number" id="vine_cuttings_per_plant" value="3" min="1" required>
+                        <label for="vine_cuttings_per_plant">Vine Cuttings (per plant) <span class="tooltip-icon" data-tooltip="Number of vine cuttings taken from each surviving plant for sub-generations (1a, 1b, 1c, etc.). CIP data: 5-8 per harvest.">i</span></label>
+                        <input type="number" id="vine_cuttings_per_plant" value="5" min="1" required>
 
                         <label for="replant_percent">Tuber Replant % (for next Gen) <span class="tooltip-icon" data-tooltip="Fraction of harvested tubers set aside for replanting. 0.10 = 10%. Range: 0.01 - 1.0.">i</span></label>
                         <input type="number" step="0.01" id="replant_percent" value="0.10" min="0.01" max="1" required>
 
-                        <label for="slips_from_replant">Slips from Replanted Tuber <span class="tooltip-icon" data-tooltip="Number of slips each replanted tuber produces. Typical: 3 - 8.">i</span></label>
-                        <input type="number" id="slips_from_replant" value="5" min="1" required>
+                        <label for="slips_from_replant">Slips from Replanted Tuber <span class="tooltip-icon" data-tooltip="Number of slips each sprouted replanted tuber produces. Research shows 20-50 slips per sprouted tuber.">i</span></label>
+                        <input type="number" id="slips_from_replant" value="30" min="1" required>
 
-                        <label for="mortality_rate">Mortality Rate <span class="tooltip-icon" data-tooltip="Survival fraction of planted slips. 0.85 = 85% survive. This is a survival rate, not a death rate. Range: 0.01 - 1.0.">i</span></label>
-                        <input type="number" step="0.01" id="mortality_rate" value="0.85" min="0.01" max="1" required>
+                        <label for="slip_survival_rate">Slip Survival Rate <span class="tooltip-icon" data-tooltip="Fraction of planted slips that survive to harvest. 0.70 = 70% survive. Haiti: storms, drought, pests reduce survival. Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="slip_survival_rate" value="0.70" min="0.01" max="1" required>
 
-                        <label for="crop_damage_loss">Crop Damage Loss <span class="tooltip-icon" data-tooltip="Fraction surviving crop damage (pests, weather). 0.83 = 83% survives. Range: 0.01 - 1.0.">i</span></label>
-                        <input type="number" step="0.01" id="crop_damage_loss" value="0.83" min="0.01" max="1" required>
+                        <label for="crop_survival_rate">Crop Survival Rate <span class="tooltip-icon" data-tooltip="Fraction surviving crop damage (weevil Cylas formicarius, weather). 0.70 = 70% survives. Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="crop_survival_rate" value="0.70" min="0.01" max="1" required>
 
-                        <label for="storage_loss">Storage Loss <span class="tooltip-icon" data-tooltip="Fraction surviving post-harvest storage. 0.90 = 90% survives storage. Range: 0.01 - 1.0.">i</span></label>
-                        <input type="number" step="0.01" id="storage_loss" value="0.90" min="0.01" max="1" required>
+                        <label for="storage_survival_rate">Storage Survival Rate <span class="tooltip-icon" data-tooltip="Fraction surviving post-harvest storage. 0.65 = 65% survives. 35% post-harvest loss typical in Haiti (no cold chain). Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="storage_survival_rate" value="0.65" min="0.01" max="1" required>
                     </div>
                 </fieldset>
                 
@@ -102,17 +107,17 @@
                         <label for="people_to_feed">People to Feed <span class="tooltip-icon" data-tooltip="Target population to provide nutrition for. Used to calculate days of food supply.">i</span></label>
                         <input type="number" id="people_to_feed" value="1000000" min="1" required>
 
-                        <label for="calorie_target_per_person">Calorie Target (per person/day) <span class="tooltip-icon" data-tooltip="Daily calorie target per person from OFSP. 800 kcal is a supplemental target, not full daily intake. Range: 100 - 3000.">i</span></label>
-                        <input type="number" id="calorie_target_per_person" value="800" min="1" required>
+                        <label for="calorie_target_per_person">Calorie Target (per person/day) <span class="tooltip-icon" data-tooltip="Daily calorie gap per person from OFSP. 600 kcal is the IPC gap estimate for Phase 3+ households. Range: 100 - 3000.">i</span></label>
+                        <input type="number" id="calorie_target_per_person" value="600" min="1" required>
 
-                        <label for="calories_per_potato_with_leaves">Calories (Potato + Leaves) <span class="tooltip-icon" data-tooltip="Total calories from one average potato including edible leaves. Typical: 100 - 200 kcal.">i</span></label>
-                        <input type="number" id="calories_per_potato_with_leaves" value="126" min="1" required>
+                        <label for="calories_per_potato_with_leaves">Calories (Potato + Leaves) <span class="tooltip-icon" data-tooltip="Calories from one average tuber. 86 kcal/100g at 175g avg = ~150 kcal. Leaves counted separately.">i</span></label>
+                        <input type="number" id="calories_per_potato_with_leaves" value="150" min="1" required>
 
-                        <label for="grams_per_potato">Grams per Potato (avg) <span class="tooltip-icon" data-tooltip="Average weight of one potato in grams. Used to convert between potato count and tonnage. Typical: 100 - 300g.">i</span></label>
-                        <input type="number" id="grams_per_potato" value="158" min="1" required>
+                        <label for="grams_per_potato">Grams per Potato (avg) <span class="tooltip-icon" data-tooltip="Average weight of one tuber in grams. OFSP avg 130-250g in tropics. Default 175g for northern Haiti.">i</span></label>
+                        <input type="number" id="grams_per_potato" value="175" min="1" required>
 
-                        <label for="grams_per_ton">Grams per Ton <span class="tooltip-icon" data-tooltip="Conversion factor: grams in one ton. 907,185g = 1 US short ton. Usually not changed.">i</span></label>
-                        <input type="number" id="grams_per_ton" value="907185" min="1" required>
+                        <label for="grams_per_ton">Grams per Metric Ton <span class="tooltip-icon" data-tooltip="Conversion factor: grams in one metric ton. 1,000,000g = 1 metric ton.">i</span></label>
+                        <input type="number" id="grams_per_ton" value="1000000" min="1" required>
                     </div>
                 </fieldset>
 

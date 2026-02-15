@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-calculate when any input changes
     form.addEventListener('input', run);
+    form.addEventListener('change', run);
 
     // Run once on load with default values
     run();
@@ -80,22 +81,38 @@ function markInvalid(input, message) {
  */
 function getInputs() {
     const inputs = {};
-    const formElements = document.getElementById('calc-form').elements;
+    const form = document.getElementById('calc-form');
+    const formElements = form.elements;
     for (const element of formElements) {
         if (element.id && element.type === 'number') {
             const val = parseFloat(element.value);
             inputs[element.id] = Number.isFinite(val) ? val : 0;
         }
     }
+    const yieldModeRadio = form.querySelector('input[name="yield_mode"]:checked');
+    inputs.yield_mode = yieldModeRadio ? yieldModeRadio.value : 'per_hectare';
     return inputs;
 }
 
 /**
  * Calculates a single generation's harvest and cost.
+ * Supports two yield modes:
+ *   - "per_hectare": tons = hectares * tons_per_hectare * harvest%, potatoes derived backward
+ *   - "per_plant": tons = slips * potatoes/plant * lossFactor * grams/ton (original logic)
  */
 function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPerHectareNoSlips, includeSlipCost) {
-    const potatoesHarvested = slipsPlanted * inputs.potatoes_per_plant * lossFactor;
-    const tonsHarvested = (potatoesHarvested * inputs.grams_per_potato / inputs.grams_per_ton) * inputs.tons_harvest_percent;
+    let potatoesHarvested, tonsHarvested;
+
+    if (inputs.yield_mode === 'per_hectare') {
+        tonsHarvested = hectares * inputs.tons_per_hectare * inputs.tons_harvest_percent;
+        potatoesHarvested = inputs.grams_per_potato > 0
+            ? (tonsHarvested * inputs.grams_per_ton) / inputs.grams_per_potato
+            : 0;
+    } else {
+        potatoesHarvested = slipsPlanted * inputs.potatoes_per_plant * lossFactor;
+        tonsHarvested = (potatoesHarvested * inputs.grams_per_potato / inputs.grams_per_ton) * inputs.tons_harvest_percent;
+    }
+
     const caloriesPerTon = inputs.grams_per_ton > 0 && inputs.grams_per_potato > 0
         ? (inputs.grams_per_ton / inputs.grams_per_potato) * inputs.calories_per_potato_with_leaves
         : 0;
@@ -122,7 +139,7 @@ function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPe
  * The main calculation engine, ported from the spreadsheet logic.
  */
 function calculateSimulation(inputs) {
-    const lossFactor = inputs.mortality_rate * inputs.crop_damage_loss * inputs.storage_loss;
+    const lossFactor = inputs.slip_survival_rate * inputs.crop_survival_rate * inputs.storage_loss;
 
     // --- Cost per hectare (excluding slips) ---
     const laborPerAcre = inputs.cost_land_clearing_per_acre + inputs.cost_forking_per_acre +
@@ -141,7 +158,7 @@ function calculateSimulation(inputs) {
     // --- Gen 1a, 1b, 1c: vine cutting regrowth from Gen 1 plants ---
     // Each surviving plant produces vine_cuttings_per_plant new plants.
     const vineCuttingSlips = gen1.potatoes_harvested > 0
-        ? (gen1.slips_planted * inputs.mortality_rate) * inputs.vine_cuttings_per_plant
+        ? (gen1.slips_planted * inputs.slip_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
     const gen1a = calcGeneration("Gen 1a", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, false);
     const gen1b = calcGeneration("Gen 1b", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, false);
@@ -152,7 +169,7 @@ function calculateSimulation(inputs) {
     const gen2 = calcGeneration("Generation 2", inputs.hectares_gen_2, gen2SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, false);
 
     const vineCuttingSlips2 = gen2.potatoes_harvested > 0
-        ? (gen2.slips_planted * inputs.mortality_rate) * inputs.vine_cuttings_per_plant
+        ? (gen2.slips_planted * inputs.slip_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
     const gen2a = calcGeneration("Gen 2a", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, false);
     const gen2b = calcGeneration("Gen 2b", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, false);
@@ -163,7 +180,7 @@ function calculateSimulation(inputs) {
     const gen3 = calcGeneration("Generation 3", inputs.hectares_gen_3, gen3SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, false);
 
     const vineCuttingSlips3 = gen3.potatoes_harvested > 0
-        ? (gen3.slips_planted * inputs.mortality_rate) * inputs.vine_cuttings_per_plant
+        ? (gen3.slips_planted * inputs.slip_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
     const gen3a = calcGeneration("Gen 3a", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, false);
     const gen3b = calcGeneration("Gen 3b", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, false);
@@ -575,8 +592,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data) return;
         const form = document.getElementById('calc-form');
         for (const [key, val] of Object.entries(data)) {
-            const el = form.elements[key];
-            if (el) { el.value = val; }
+            if (key === 'yield_mode') {
+                const radio = form.querySelector(`input[name="yield_mode"][value="${val}"]`);
+                if (radio) radio.checked = true;
+            } else {
+                const el = form.elements[key];
+                if (el) { el.value = val; }
+            }
         }
         form.dispatchEvent(new Event('input'));
     });
