@@ -170,6 +170,11 @@ button[type="submit"]:hover {
     border-bottom: none;
 }
 
+.gen-table .totals-row {
+    background: var(--bg-color);
+    border-top: 2px solid var(--primary-color);
+}
+
 .gen-table td.highlight {
     font-weight: 600;
     color: var(--secondary-color);
