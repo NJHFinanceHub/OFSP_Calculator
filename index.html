@@ -6,6 +6,7 @@
     <title>OFSP Regeneration Calculator</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -142,6 +143,18 @@
                     <p>Adjust the values in the form and click "Run Simulation" to see the results.</p>
                 </div>
             </div>
+        </div>
+
+        <div id="chart-section" class="chart-section" style="display: none;">
+            <div class="chart-header">
+                <h2>Generation Comparison</h2>
+                <div class="chart-toggle">
+                    <button type="button" class="toggle-btn active" data-metric="tons_harvested">Tons Harvested</button>
+                    <button type="button" class="toggle-btn" data-metric="days_fed">Days Fed</button>
+                    <button type="button" class="toggle-btn" data-metric="cost">Cost ($)</button>
+                </div>
+            </div>
+            <canvas id="gen-chart"></canvas>
         </div>
     </main>
 

@@ -211,4 +211,69 @@ function displayResults(results, inputs) {
     `;
 
     container.innerHTML = html;
+    renderChart(results);
 }
+
+let genChart = null;
+let currentMetric = 'tons_harvested';
+let lastResults = null;
+
+function renderChart(results) {
+    lastResults = results;
+    const section = document.getElementById('chart-section');
+    section.style.display = 'block';
+
+    const labels = results.all_gens.map(g => g.name);
+    const dataMap = {
+        tons_harvested: { data: results.all_gens.map(g => g.tons_harvested), label: 'Tons Harvested', color: '#006400' },
+        days_fed: { data: results.all_gens.map(g => g.days_fed), label: 'Days Fed', color: '#ff8c00' },
+        cost: { data: results.all_gens.map(g => g.cost), label: 'Cost ($)', color: '#8b0000' },
+    };
+
+    const metric = dataMap[currentMetric];
+    const ctx = document.getElementById('gen-chart');
+
+    if (genChart) {
+        genChart.data.labels = labels;
+        genChart.data.datasets[0].data = metric.data;
+        genChart.data.datasets[0].label = metric.label;
+        genChart.data.datasets[0].backgroundColor = metric.color + 'cc';
+        genChart.data.datasets[0].borderColor = metric.color;
+        genChart.options.plugins.title.text = metric.label + ' by Generation';
+        genChart.update();
+        return;
+    }
+
+    genChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: metric.label,
+                data: metric.data,
+                backgroundColor: metric.color + 'cc',
+                borderColor: metric.color,
+                borderWidth: 1,
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: { display: true, text: metric.label + ' by Generation', font: { size: 16 } },
+                legend: { display: false },
+            },
+            scales: {
+                y: { beginAtZero: true },
+            },
+        },
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.matches('.toggle-btn')) return;
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentMetric = e.target.dataset.metric;
+    if (lastResults) renderChart(lastResults);
+});
