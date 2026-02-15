@@ -99,12 +99,19 @@ function getInputs() {
  * Supports two yield modes:
  *   - "per_hectare": tons = hectares * tons_per_hectare * harvest%, potatoes derived backward
  *   - "per_plant": tons = slips * potatoes/plant * lossFactor * grams/ton (original logic)
+ *
+ * isSubGen: true for vine-cutting sub-generations (1a/1b/1c etc.)
+ *   Sub-gens yield a reduced fraction (yieldFraction) and only incur
+ *   maintenance costs (no land clearing, forking, herbicide, slip purchase).
  */
-function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPerHectareNoSlips, includeSlipCost) {
+function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, includeSlipCost, isSubGen, yieldFraction) {
+    isSubGen = isSubGen || false;
+    yieldFraction = yieldFraction || 1.0;
+
     let potatoesHarvested, tonsHarvested;
 
     if (inputs.yield_mode === 'per_hectare') {
-        tonsHarvested = hectares * inputs.tons_per_hectare * inputs.tons_harvest_percent;
+        tonsHarvested = hectares * inputs.tons_per_hectare * inputs.tons_harvest_percent * yieldFraction;
         potatoesHarvested = inputs.grams_per_potato > 0
             ? (tonsHarvested * inputs.grams_per_ton) / inputs.grams_per_potato
             : 0;
@@ -121,8 +128,14 @@ function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPe
         ? (tonsHarvested * caloriesPerTon) / caloriesNeededPerDay
         : 0;
 
-    const slipCost = includeSlipCost ? slipsPlanted * inputs.cost_slip_per_unit : 0;
-    const cost = (costPerHectareNoSlips * hectares) + slipCost;
+    let cost;
+    if (isSubGen) {
+        // Sub-generations only pay maintenance costs (weeding, harvesting, fertilizer app)
+        cost = maintenanceCostPerHectare * hectares;
+    } else {
+        const slipCost = includeSlipCost ? slipsPlanted * inputs.cost_slip_per_unit : 0;
+        cost = (costPerHectareNoSlips * hectares) + slipCost;
+    }
 
     // Vitamin A: mcg RAE produced = tons * grams_per_ton / 100 * vitamin_a_per_100g
     const vitaminAMcg = (inputs.vitamin_a_per_100g > 0)
@@ -147,11 +160,19 @@ function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPe
 
 /**
  * The main calculation engine, ported from the spreadsheet logic.
+ *
+ * Sub-generations (1a/1b/1c etc.) represent sequential vine-cutting
+ * harvests from the same land, yielding progressively less (40%, 25%, 15%)
+ * and only incurring maintenance costs (no land prep / slip purchase).
+ *
+ * The annual projection divides total output by the time the propagation
+ * chain actually takes, then scales to 365 days — instead of naively
+ * multiplying by cycles_per_year.
  */
 function calculateSimulation(inputs) {
     const lossFactor = inputs.slip_survival_rate * inputs.crop_survival_rate * inputs.storage_survival_rate;
 
-    // --- Cost per hectare (excluding slips) ---
+    // --- Cost per hectare (excluding slips) - full prep for main generations ---
     const laborPerAcre = inputs.cost_land_clearing_per_acre + inputs.cost_forking_per_acre +
         inputs.cost_planting_per_acre + inputs.cost_weeding_per_acre +
         inputs.cost_fertilizer_app_per_acre + inputs.cost_harvesting_per_acre;
@@ -162,39 +183,47 @@ function calculateSimulation(inputs) {
 
     const costPerHectareNoSlips = (laborPerAcre + suppliesPerAcre + inputs.cost_irrigation_per_acre) * inputs.acres_per_hectare;
 
+    // --- Maintenance-only cost for sub-gens (weeding, fertilizer app, harvesting, transport) ---
+    const maintenancePerAcre = inputs.cost_weeding_per_acre + inputs.cost_fertilizer_app_per_acre +
+        inputs.cost_harvesting_per_acre + inputs.cost_transport_per_acre;
+    const maintenanceCostPerHectare = maintenancePerAcre * inputs.acres_per_hectare;
+
+    // Sub-generation yield fractions (declining ratoon harvests)
+    const subGenYields = [0.40, 0.25, 0.15];
+
     // --- Generation 1 ---
-    const gen1 = calcGeneration("Generation 1", inputs.initial_hectares, inputs.initial_slips, inputs, lossFactor, costPerHectareNoSlips, true);
+    const gen1 = calcGeneration("Generation 1", inputs.initial_hectares, inputs.initial_slips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, true, false, 1.0);
 
     // --- Gen 1a, 1b, 1c: vine cutting regrowth from Gen 1 plants ---
-    // Each surviving plant produces vine_cuttings_per_plant new plants.
+    // Vine cutting slips use crop_survival (not slip_survival again) to avoid double-penalizing
     const vineCuttingSlips = gen1.potatoes_harvested > 0
-        ? (gen1.slips_planted * inputs.slip_survival_rate) * inputs.vine_cuttings_per_plant
+        ? (gen1.slips_planted * inputs.crop_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
-    const gen1a = calcGeneration("Gen 1a", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, false);
-    const gen1b = calcGeneration("Gen 1b", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, false);
-    const gen1c = calcGeneration("Gen 1c", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, false);
+    const gen1a = calcGeneration("Gen 1a (vine)", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
+    const gen1b = calcGeneration("Gen 1b (vine)", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
+    const gen1c = calcGeneration("Gen 1c (vine)", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
 
     // --- Generation 2: replanted tubers from Gen 1 ---
     const gen2SlipsPlanted = gen1.potatoes_harvested * inputs.replant_percent * inputs.slips_from_replant;
-    const gen2 = calcGeneration("Generation 2", inputs.hectares_gen_2, gen2SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, false);
+    const gen2 = calcGeneration("Generation 2", inputs.hectares_gen_2, gen2SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, false, 1.0);
 
     const vineCuttingSlips2 = gen2.potatoes_harvested > 0
-        ? (gen2.slips_planted * inputs.slip_survival_rate) * inputs.vine_cuttings_per_plant
+        ? (gen2.slips_planted * inputs.crop_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
-    const gen2a = calcGeneration("Gen 2a", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, false);
-    const gen2b = calcGeneration("Gen 2b", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, false);
-    const gen2c = calcGeneration("Gen 2c", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, false);
+    const gen2a = calcGeneration("Gen 2a (vine)", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
+    const gen2b = calcGeneration("Gen 2b (vine)", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
+    const gen2c = calcGeneration("Gen 2c (vine)", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
 
     // --- Generation 3: replanted tubers from Gen 2 ---
     const gen3SlipsPlanted = gen2.potatoes_harvested * inputs.replant_percent * inputs.slips_from_replant;
-    const gen3 = calcGeneration("Generation 3", inputs.hectares_gen_3, gen3SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, false);
+    const gen3 = calcGeneration("Generation 3", inputs.hectares_gen_3, gen3SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, false, 1.0);
 
     const vineCuttingSlips3 = gen3.potatoes_harvested > 0
-        ? (gen3.slips_planted * inputs.slip_survival_rate) * inputs.vine_cuttings_per_plant
+        ? (gen3.slips_planted * inputs.crop_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
-    const gen3a = calcGeneration("Gen 3a", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, false);
-    const gen3b = calcGeneration("Gen 3b", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, false);
-    const gen3c = calcGeneration("Gen 3c", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, false);
+    const gen3a = calcGeneration("Gen 3a (vine)", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
+    const gen3b = calcGeneration("Gen 3b (vine)", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
+    const gen3c = calcGeneration("Gen 3c (vine)", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
 
     const allGens = [
         gen1, gen1a, gen1b, gen1c,
@@ -213,10 +242,17 @@ function calculateSimulation(inputs) {
     const totalVitaminAChildDays = allGens.reduce((sum, g) => sum + g.vitamin_a_child_days, 0);
     const childrenAnnualVaMet = totalVitaminAChildDays > 0 ? Math.floor(totalVitaminAChildDays / 365) : 0;
 
+    // --- Annual projection ---
+    // Each main generation takes days_to_harvest. Sub-gens overlap (ratoon from same land).
+    // The full chain (Gen1 + subs → Gen2 + subs → Gen3 + subs) spans 3 main cycles.
     const cyclesPerYear = inputs.cycles_per_year || 1;
-    const annualTons = totalTons * cyclesPerYear;
-    const annualDaysFed = totalDaysFed * cyclesPerYear;
-    const annualCost = totalCost * cyclesPerYear;
+    const daysPerCycle = inputs.days_to_harvest || 120;
+    // 3 main generations; sub-gens overlap with their parent's cycle
+    const totalChainDays = 3 * daysPerCycle;
+    const annualScaleFactor = Math.min(365 / totalChainDays, cyclesPerYear);
+    const annualTons = totalTons * annualScaleFactor;
+    const annualDaysFed = totalDaysFed * annualScaleFactor;
+    const annualCost = totalCost * annualScaleFactor;
 
     return {
         all_gens: allGens,
@@ -228,6 +264,7 @@ function calculateSimulation(inputs) {
         total_vitamin_a_child_days: totalVitaminAChildDays,
         children_annual_va_met: childrenAnnualVaMet,
         cycles_per_year: cyclesPerYear,
+        annual_scale_factor: annualScaleFactor,
         annual_tons: annualTons,
         annual_days_fed: annualDaysFed,
         annual_cost: annualCost,
@@ -259,8 +296,8 @@ function displayResults(results, inputs) {
         `<option value="${opt.id}">${opt.label}</option>`
     ).join('');
 
-    const cycleLabel = results.cycles_per_year > 1 ? ' (per cycle)' : '';
-    const showAnnual = results.cycles_per_year > 1;
+    const cycleLabel = ' (chain total)';
+    const showAnnual = results.annual_scale_factor > 0;
 
     const html = `
         <div class="export-buttons">
@@ -271,7 +308,7 @@ function displayResults(results, inputs) {
             <h2>Simulation Summary</h2>
             ${showAnnual ? `
             <div class="annual-banner">
-                <h3>Annual Totals (${results.cycles_per_year} cycles/year, ${fInt(inputs.days_to_harvest)} days/cycle)</h3>
+                <h3>Annual Projection (${fNum(results.annual_scale_factor, 2)}x scale, ${results.cycles_per_year} cycles/yr, ${fInt(inputs.days_to_harvest)} days/cycle)</h3>
                 <div class="summary-grid annual-grid">
                     <div class="summary-item annual-item">
                         <h3>Annual Tons</h3>
