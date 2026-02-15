@@ -76,6 +76,17 @@
                 </fieldset>
 
                 <fieldset>
+                    <legend>Growing Season</legend>
+                    <div class="form-grid">
+                        <label for="cycles_per_year">Crop Cycles per Year <span class="tooltip-icon" data-tooltip="Number of complete crop cycles per year. Northern Haiti supports 2 cycles: April-August and September-January.">i</span></label>
+                        <input type="number" id="cycles_per_year" value="2" min="1" max="4" required>
+
+                        <label for="days_to_harvest">Days to Harvest <span class="tooltip-icon" data-tooltip="Number of days from planting to harvest for one cycle. OFSP typically matures in 90-150 days.">i</span></label>
+                        <input type="number" id="days_to_harvest" value="120" min="30" max="365" required>
+                    </div>
+                </fieldset>
+
+                <fieldset>
                     <legend>Regeneration & Survival Rates</legend>
                     <div class="form-grid">
                         <label for="potatoes_per_plant">Potatoes per Plant <span class="tooltip-icon" data-tooltip="Average number of tubers each plant produces. Tropical avg 4-8.">i</span></label>
@@ -118,6 +129,12 @@
 
                         <label for="grams_per_ton">Grams per Metric Ton <span class="tooltip-icon" data-tooltip="Conversion factor: grams in one metric ton. 1,000,000g = 1 metric ton.">i</span></label>
                         <input type="number" id="grams_per_ton" value="1000000" min="1" required>
+
+                        <label for="vitamin_a_per_100g">Vitamin A per 100g (mcg RAE) <span class="tooltip-icon" data-tooltip="Beta-carotene content of OFSP expressed as mcg Retinol Activity Equivalents per 100g flesh. OFSP range: 250-1300 mcg RAE. Default 700 for typical improved varieties.">i</span></label>
+                        <input type="number" id="vitamin_a_per_100g" value="700" min="0" required>
+
+                        <label for="daily_vitamin_a_need">Daily Vitamin A Need (mcg RAE) <span class="tooltip-icon" data-tooltip="WHO Recommended Daily Allowance for Vitamin A. Default 400 mcg RAE (children aged 1-3). Adults: 600-900 mcg RAE.">i</span></label>
+                        <input type="number" id="daily_vitamin_a_need" value="400" min="1" required>
                     </div>
                 </fieldset>
 
@@ -176,6 +193,13 @@
                     <p>Adjust the values in the form and click "Run Simulation" to see the results.</p>
                 </div>
             </div>
+        </div>
+
+        <div id="timeline-section" class="chart-section" style="display: none;">
+            <div class="chart-header">
+                <h2>Growing Season Timeline</h2>
+            </div>
+            <canvas id="timeline-chart"></canvas>
         </div>
 
         <div id="chart-section" class="chart-section" style="display: none;">
