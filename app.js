@@ -329,7 +329,7 @@ function getSensitivityInputOptions() {
  */
 function runSensitivityAnalysis(inputId, baseInputs) {
     const container = document.getElementById('sensitivity-results');
-    if (!inputId || !baseInputs[inputId] === undefined) {
+    if (!inputId || baseInputs[inputId] === undefined) {
         container.innerHTML = '';
         return;
     }
