@@ -708,6 +708,39 @@ input.input-invalid {
     }
 }
 
+/* Annual Banner */
+.annual-banner {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.annual-banner > h3 {
+    margin: 0 0 0.75rem 0;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.annual-grid {
+    gap: 0.75rem;
+}
+
+.summary-item.annual-item {
+    background: white;
+    border-left: 4px solid var(--primary-color);
+}
+
+.summary-item.annual-item h3 {
+    color: var(--primary-color);
+    font-size: 0.85rem;
+}
+
+.summary-item.annual-item p {
+    font-size: 1.4rem;
+}
+
 .summary-item.vitamin-a-highlight {
     background: linear-gradient(135deg, #fff3e0, #ffe0b2);
     border-left: 4px solid #ff6600;

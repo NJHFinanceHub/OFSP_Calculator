@@ -124,6 +124,14 @@ function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPe
     const slipCost = includeSlipCost ? slipsPlanted * inputs.cost_slip_per_unit : 0;
     const cost = (costPerHectareNoSlips * hectares) + slipCost;
 
+    // Vitamin A: mcg RAE produced = tons * grams_per_ton / 100 * vitamin_a_per_100g
+    const vitaminAMcg = (inputs.vitamin_a_per_100g > 0)
+        ? tonsHarvested * inputs.grams_per_ton / 100 * inputs.vitamin_a_per_100g
+        : 0;
+    const vitaminAChildDays = (inputs.daily_vitamin_a_need > 0)
+        ? vitaminAMcg / inputs.daily_vitamin_a_need
+        : 0;
+
     return {
         name,
         hectares,
@@ -131,6 +139,8 @@ function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPe
         potatoes_harvested: potatoesHarvested,
         tons_harvested: tonsHarvested,
         days_fed: daysFed,
+        vitamin_a_mcg: vitaminAMcg,
+        vitamin_a_child_days: vitaminAChildDays,
         cost,
     };
 }
@@ -200,6 +210,14 @@ function calculateSimulation(inputs) {
         ? totalCost / (totalDaysFed * inputs.people_to_feed)
         : 0;
 
+    const totalVitaminAChildDays = allGens.reduce((sum, g) => sum + g.vitamin_a_child_days, 0);
+    const childrenAnnualVaMet = totalVitaminAChildDays > 0 ? Math.floor(totalVitaminAChildDays / 365) : 0;
+
+    const cyclesPerYear = inputs.cycles_per_year || 1;
+    const annualTons = totalTons * cyclesPerYear;
+    const annualDaysFed = totalDaysFed * cyclesPerYear;
+    const annualCost = totalCost * cyclesPerYear;
+
     return {
         all_gens: allGens,
         total_days_fed: totalDaysFed,
@@ -207,6 +225,12 @@ function calculateSimulation(inputs) {
         total_tons: totalTons,
         cost_per_person_full_period: costPerPersonFullPeriod,
         cost_per_person_per_day: costPerPersonPerDay,
+        total_vitamin_a_child_days: totalVitaminAChildDays,
+        children_annual_va_met: childrenAnnualVaMet,
+        cycles_per_year: cyclesPerYear,
+        annual_tons: annualTons,
+        annual_days_fed: annualDaysFed,
+        annual_cost: annualCost,
     };
 }
 
@@ -225,6 +249,7 @@ function displayResults(results, inputs) {
             <td>${fInt(gen.slips_planted)}</td>
             <td class="highlight">${fNum(gen.tons_harvested)}</td>
             <td>${fNum(gen.days_fed, 1)}</td>
+            <td>${fInt(gen.vitamin_a_child_days)}</td>
             <td>${fDol(gen.cost)}</td>
         </tr>
     `).join('');
@@ -234,6 +259,9 @@ function displayResults(results, inputs) {
         `<option value="${opt.id}">${opt.label}</option>`
     ).join('');
 
+    const cycleLabel = results.cycles_per_year > 1 ? ' (per cycle)' : '';
+    const showAnnual = results.cycles_per_year > 1;
+
     const html = `
         <div class="export-buttons">
             <button type="button" id="btn-export-csv" onclick="exportCSV()">Export CSV</button>
@@ -241,17 +269,35 @@ function displayResults(results, inputs) {
         </div>
         <div class="results-summary">
             <h2>Simulation Summary</h2>
+            ${showAnnual ? `
+            <div class="annual-banner">
+                <h3>Annual Totals (${results.cycles_per_year} cycles/year, ${fInt(inputs.days_to_harvest)} days/cycle)</h3>
+                <div class="summary-grid annual-grid">
+                    <div class="summary-item annual-item">
+                        <h3>Annual Tons</h3>
+                        <p>${fNum(results.annual_tons, 1)}</p>
+                    </div>
+                    <div class="summary-item annual-item">
+                        <h3>Annual Days Fed</h3>
+                        <p>${fNum(results.annual_days_fed, 1)}</p>
+                    </div>
+                    <div class="summary-item annual-item">
+                        <h3>Annual Cost</h3>
+                        <p>${fDol(results.annual_cost)}</p>
+                    </div>
+                </div>
+            </div>` : ''}
             <div class="summary-grid">
                 <div class="summary-item">
-                    <h3>Total Days People Fed</h3>
+                    <h3>Days Fed${cycleLabel}</h3>
                     <p>${fNum(results.total_days_fed, 1)}</p>
                 </div>
                 <div class="summary-item">
-                    <h3>Total Tons Harvested</h3>
+                    <h3>Tons Harvested${cycleLabel}</h3>
                     <p>${fNum(results.total_tons, 1)}</p>
                 </div>
                 <div class="summary-item">
-                    <h3>Total Cost</h3>
+                    <h3>Cost${cycleLabel}</h3>
                     <p>${fDol(results.total_cost)}</p>
                 </div>
                 <div class="summary-item">
@@ -266,6 +312,14 @@ function displayResults(results, inputs) {
                     <h3>People to Feed</h3>
                     <p>${fInt(inputs.people_to_feed)}</p>
                 </div>
+                <div class="summary-item vitamin-a-highlight">
+                    <h3>Vitamin A: Child-Days Supplied</h3>
+                    <p>${fNum(results.total_vitamin_a_child_days / 1000000, 2)} million</p>
+                </div>
+                <div class="summary-item vitamin-a-highlight">
+                    <h3>Children Annual VA Need Met</h3>
+                    <p>${fInt(results.children_annual_va_met)}</p>
+                </div>
             </div>
         </div>
 
@@ -276,6 +330,7 @@ function displayResults(results, inputs) {
                     <th>Slips Planted</th>
                     <th>Tons Harvested</th>
                     <th>Days Fed</th>
+                    <th>VA Child-Days</th>
                     <th>Cost</th>
                 </tr>
             </thead>
@@ -286,6 +341,7 @@ function displayResults(results, inputs) {
                     <td></td>
                     <td class="highlight"><strong>${fNum(results.total_tons)}</strong></td>
                     <td><strong>${fNum(results.total_days_fed, 1)}</strong></td>
+                    <td><strong>${fInt(results.total_vitamin_a_child_days)}</strong></td>
                     <td><strong>${fDol(results.total_cost)}</strong></td>
                 </tr>
             </tbody>
@@ -314,6 +370,7 @@ function displayResults(results, inputs) {
 
     // Render chart visualization
     renderChart(results);
+    renderTimeline(inputs);
 }
 
 /**
@@ -334,8 +391,11 @@ function getSensitivityInputOptions() {
         { id: 'storage_survival_rate', label: 'Storage Survival Rate' },
         { id: 'people_to_feed', label: 'People to Feed' },
         { id: 'calorie_target_per_person', label: 'Calorie Target' },
+        { id: 'cycles_per_year', label: 'Crop Cycles per Year' },
         { id: 'cost_irrigation_per_acre', label: 'Irrigation Cost' },
         { id: 'cost_slip_per_unit', label: 'Cost per Slip' },
+        { id: 'vitamin_a_per_100g', label: 'Vitamin A per 100g' },
+        { id: 'daily_vitamin_a_need', label: 'Daily VA Need' },
     ];
     return options;
 }
@@ -489,10 +549,10 @@ function exportCSV() {
     const inputs = getInputs();
     const results = calculateSimulation(inputs);
     const rows = [
-        ['Generation', 'Hectares', 'Slips Planted', 'Potatoes Harvested', 'Tons Harvested', 'Days Fed', 'Cost'],
+        ['Generation', 'Hectares', 'Slips Planted', 'Potatoes Harvested', 'Tons Harvested', 'Days Fed', 'VA Child-Days', 'Cost'],
     ];
     results.all_gens.forEach(gen => {
-        rows.push([gen.name, gen.hectares, gen.slips_planted, gen.potatoes_harvested, gen.tons_harvested, gen.days_fed, gen.cost]);
+        rows.push([gen.name, gen.hectares, gen.slips_planted, gen.potatoes_harvested, gen.tons_harvested, gen.days_fed, gen.vitamin_a_child_days, gen.cost]);
     });
     rows.push([]);
     rows.push(['Summary']);
@@ -502,6 +562,12 @@ function exportCSV() {
     rows.push(['Cost per Person (Full Period)', results.cost_per_person_full_period]);
     rows.push(['Cost per Person per Day', results.cost_per_person_per_day]);
     rows.push(['People to Feed', inputs.people_to_feed]);
+    rows.push(['Total VA Child-Days', results.total_vitamin_a_child_days]);
+    rows.push(['Children Annual VA Need Met', results.children_annual_va_met]);
+    rows.push(['Crop Cycles per Year', results.cycles_per_year]);
+    rows.push(['Annual Tons', results.annual_tons]);
+    rows.push(['Annual Days Fed', results.annual_days_fed]);
+    rows.push(['Annual Cost', results.annual_cost]);
 
     const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -529,6 +595,7 @@ function renderChart(results) {
         tons_harvested: { data: results.all_gens.map(g => g.tons_harvested), label: 'Tons Harvested', color: '#006400' },
         days_fed: { data: results.all_gens.map(g => g.days_fed), label: 'Days Fed', color: '#ff8c00' },
         cost: { data: results.all_gens.map(g => g.cost), label: 'Cost ($)', color: '#8b0000' },
+        vitamin_a: { data: results.all_gens.map(g => g.vitamin_a_child_days), label: 'VA Child-Days', color: '#ff6600' },
     };
 
     const metric = dataMap[currentMetric];
@@ -566,6 +633,108 @@ function renderChart(results) {
             },
             scales: {
                 y: { beginAtZero: true },
+            },
+        },
+    });
+}
+
+// --- Timeline Visualization ---
+
+let timelineChart = null;
+
+function renderTimeline(inputs) {
+    const section = document.getElementById('timeline-section');
+    section.style.display = 'block';
+
+    const cycles = inputs.cycles_per_year || 1;
+    const daysToHarvest = inputs.days_to_harvest || 120;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Northern Haiti default: Cycle 1 starts April (month 3), Cycle 2 starts Sep (month 8)
+    const cycleStarts = [3]; // April = index 3
+    if (cycles >= 2) cycleStarts.push(8); // September
+    if (cycles >= 3) cycleStarts.push(0); // January
+    if (cycles >= 4) cycleStarts.push(5); // June
+
+    const datasets = [];
+    const colors = ['#006400', '#ff8c00', '#4169e1', '#8b008b'];
+
+    for (let c = 0; c < Math.min(cycles, cycleStarts.length); c++) {
+        const startMonth = cycleStarts[c];
+        const harvestMonths = Math.ceil(daysToHarvest / 30);
+        const endMonth = startMonth + harvestMonths;
+
+        // Create data array: 1 for planting months, 0.5 for growing, 0 for inactive
+        const data = new Array(12).fill(0);
+        for (let m = startMonth; m < Math.min(endMonth, startMonth + 12); m++) {
+            const mi = m % 12;
+            if (m === startMonth) {
+                data[mi] = 1; // Planting
+            } else if (m === endMonth - 1) {
+                data[mi] = 0.75; // Harvest
+            } else {
+                data[mi] = 0.5; // Growing
+            }
+        }
+
+        datasets.push({
+            label: `Cycle ${c + 1}`,
+            data,
+            backgroundColor: colors[c] + '99',
+            borderColor: colors[c],
+            borderWidth: 1,
+            borderRadius: 2,
+        });
+    }
+
+    const ctx = document.getElementById('timeline-chart');
+
+    if (timelineChart) {
+        timelineChart.data.datasets = datasets;
+        timelineChart.update();
+        return;
+    }
+
+    timelineChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: monthNames,
+            datasets,
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Planting/Harvest Windows (${cycles} cycle${cycles > 1 ? 's' : ''}/year, ${daysToHarvest} days/cycle)`,
+                    font: { size: 16 },
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const val = context.raw;
+                            const phase = val === 1 ? 'Planting' : val === 0.75 ? 'Harvest' : val === 0.5 ? 'Growing' : 'Inactive';
+                            return `${context.dataset.label}: ${phase}`;
+                        }
+                    }
+                },
+                legend: { display: true },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1.2,
+                    ticks: {
+                        callback: function(value) {
+                            if (value === 1) return 'Plant';
+                            if (value === 0.75) return 'Harvest';
+                            if (value === 0.5) return 'Grow';
+                            if (value === 0) return '';
+                            return '';
+                        },
+                        stepSize: 0.25,
+                    },
+                },
             },
         },
     });
