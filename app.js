@@ -462,6 +462,14 @@ function runSensitivityAnalysis(inputId, baseInputs) {
     `;
 }
 
+// --- HTML Escaping ---
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
 // --- Scenario Save/Load/Compare ---
 
 const SCENARIOS_KEY = 'ofsp_scenarios';
@@ -494,7 +502,7 @@ function populateScenarioDropdowns() {
             '<option value="">-- Scenario B --</option>',
         ];
         sel.innerHTML = defaults[i] + names.map(n =>
-            `<option value="${n}">${n}</option>`
+            `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`
         ).join('');
     });
 }
@@ -520,21 +528,21 @@ function showComparison(nameA, dataA, nameB, dataB) {
         const changed = valA !== valB;
         const label = labels[key] || key;
         return `<tr class="${changed ? 'changed' : ''}">
-            <td>${label}</td>
-            <td>${valA}</td>
-            <td>${valB}</td>
+            <td>${escapeHtml(String(label))}</td>
+            <td>${escapeHtml(String(valA))}</td>
+            <td>${escapeHtml(String(valB))}</td>
             <td class="diff-indicator ${changed ? 'changed' : ''}">${changed ? '\u0394' : ''}</td>
         </tr>`;
     }).join('');
 
     container.innerHTML = `
-        <h2>Comparing: ${nameA} vs ${nameB}</h2>
+        <h2>Comparing: ${escapeHtml(nameA)} vs ${escapeHtml(nameB)}</h2>
         <table class="comparison-table">
             <thead>
                 <tr>
                     <th>Parameter</th>
-                    <th>${nameA}</th>
-                    <th>${nameB}</th>
+                    <th>${escapeHtml(nameA)}</th>
+                    <th>${escapeHtml(nameB)}</th>
                     <th></th>
                 </tr>
             </thead>
