@@ -127,44 +127,44 @@
                         <label for="acres_per_hectare">Acres per Hectare <span class="tooltip-icon" data-tooltip="Conversion factor: 1 hectare = 2.47105 acres. Usually not changed.">i</span></label>
                         <input type="number" step="0.00001" id="acres_per_hectare" value="2.47105" min="0.01" required>
 
-                        <label for="cost_irrigation_per_acre">Irrigation ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of irrigation infrastructure and water per acre. Varies widely by region.">i</span></label>
-                        <input type="number" id="cost_irrigation_per_acre" value="2500" min="0" required>
+                        <label for="cost_irrigation_per_acre">Irrigation ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of irrigation per acre. Northern Haiti is rainfed (>92% of ag), so default is 0.">i</span></label>
+                        <input type="number" id="cost_irrigation_per_acre" value="0" min="0" required>
 
-                        <label for="cost_slip_per_unit">Cost per Slip ($) <span class="tooltip-icon" data-tooltip="Purchase price per vine slip. Only applied to Generation 1 (subsequent gens use replanted material). Typical: $0.05 - $0.50.">i</span></label>
-                        <input type="number" step="0.01" id="cost_slip_per_unit" value="0.15" min="0" required>
+                        <label for="cost_slip_per_unit">Cost per Slip ($) <span class="tooltip-icon" data-tooltip="Purchase price per vine cutting. Only applied to Generation 1. Locally produced vine cuttings in Haiti.">i</span></label>
+                        <input type="number" step="0.01" id="cost_slip_per_unit" value="0.05" min="0" required>
 
-                        <label for="cost_land_clearing_per_acre">Labor: Land Clearing ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost to clear land per acre before planting.">i</span></label>
-                        <input type="number" id="cost_land_clearing_per_acre" value="480" min="0" required>
+                        <label for="cost_land_clearing_per_acre">Labor: Land Clearing ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost to clear land per acre. Haiti labor ~$3-5/day.">i</span></label>
+                        <input type="number" id="cost_land_clearing_per_acre" value="40" min="0" required>
 
                         <label for="cost_forking_per_acre">Labor: Forking ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for soil preparation (forking/tilling) per acre.">i</span></label>
-                        <input type="number" id="cost_forking_per_acre" value="800" min="0" required>
+                        <input type="number" id="cost_forking_per_acre" value="60" min="0" required>
 
                         <label for="cost_planting_per_acre">Labor: Planting ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for planting slips per acre.">i</span></label>
-                        <input type="number" id="cost_planting_per_acre" value="600" min="0" required>
+                        <input type="number" id="cost_planting_per_acre" value="45" min="0" required>
 
                         <label for="cost_weeding_per_acre">Labor: Weeding ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for weeding per acre over the growth cycle.">i</span></label>
-                        <input type="number" id="cost_weeding_per_acre" value="1200" min="0" required>
+                        <input type="number" id="cost_weeding_per_acre" value="90" min="0" required>
 
                         <label for="cost_fertilizer_app_per_acre">Labor: Fertilizer App ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for applying fertilizer per acre.">i</span></label>
-                        <input type="number" id="cost_fertilizer_app_per_acre" value="80" min="0" required>
+                        <input type="number" id="cost_fertilizer_app_per_acre" value="15" min="0" required>
 
                         <label for="cost_harvesting_per_acre">Labor: Harvesting ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for harvesting per acre.">i</span></label>
-                        <input type="number" id="cost_harvesting_per_acre" value="600" min="0" required>
+                        <input type="number" id="cost_harvesting_per_acre" value="45" min="0" required>
 
                         <label for="cost_herbicide_per_acre">Supplies: Herbicide ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of herbicide supplies per acre.">i</span></label>
-                        <input type="number" id="cost_herbicide_per_acre" value="205" min="0" required>
+                        <input type="number" id="cost_herbicide_per_acre" value="30" min="0" required>
 
                         <label for="cost_fertilizer_per_acre">Supplies: Fertilizer ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of fertilizer supplies per acre.">i</span></label>
-                        <input type="number" id="cost_fertilizer_per_acre" value="360" min="0" required>
+                        <input type="number" id="cost_fertilizer_per_acre" value="50" min="0" required>
 
                         <label for="cost_tools_per_acre">Supplies: Tools ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of tools and equipment per acre.">i</span></label>
-                        <input type="number" id="cost_tools_per_acre" value="475" min="0" required>
+                        <input type="number" id="cost_tools_per_acre" value="40" min="0" required>
 
                         <label for="cost_other_per_acre">Supplies: Other ($ / Acre) <span class="tooltip-icon" data-tooltip="Miscellaneous supply costs per acre.">i</span></label>
-                        <input type="number" id="cost_other_per_acre" value="65" min="0" required>
+                        <input type="number" id="cost_other_per_acre" value="20" min="0" required>
 
                         <label for="cost_transport_per_acre">Supplies: Transport ($ / Acre) <span class="tooltip-icon" data-tooltip="Transportation cost per acre for moving inputs and harvest.">i</span></label>
-                        <input type="number" id="cost_transport_per_acre" value="300" min="0" required>
+                        <input type="number" id="cost_transport_per_acre" value="35" min="0" required>
                     </div>
                 </fieldset>
 

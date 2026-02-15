@@ -139,7 +139,7 @@ function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPe
  * The main calculation engine, ported from the spreadsheet logic.
  */
 function calculateSimulation(inputs) {
-    const lossFactor = inputs.slip_survival_rate * inputs.crop_survival_rate * inputs.storage_loss;
+    const lossFactor = inputs.slip_survival_rate * inputs.crop_survival_rate * inputs.storage_survival_rate;
 
     // --- Cost per hectare (excluding slips) ---
     const laborPerAcre = inputs.cost_land_clearing_per_acre + inputs.cost_forking_per_acre +
@@ -329,9 +329,9 @@ function getSensitivityInputOptions() {
         { id: 'vine_cuttings_per_plant', label: 'Vine Cuttings per Plant' },
         { id: 'replant_percent', label: 'Tuber Replant %' },
         { id: 'slips_from_replant', label: 'Slips from Replant' },
-        { id: 'mortality_rate', label: 'Mortality Rate' },
-        { id: 'crop_damage_loss', label: 'Crop Damage Loss' },
-        { id: 'storage_loss', label: 'Storage Loss' },
+        { id: 'slip_survival_rate', label: 'Slip Survival Rate' },
+        { id: 'crop_survival_rate', label: 'Crop Survival Rate' },
+        { id: 'storage_survival_rate', label: 'Storage Survival Rate' },
         { id: 'people_to_feed', label: 'People to Feed' },
         { id: 'calorie_target_per_person', label: 'Calorie Target' },
         { id: 'cost_irrigation_per_acre', label: 'Irrigation Cost' },
