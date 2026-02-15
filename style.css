@@ -180,6 +180,134 @@ button[type="submit"]:hover {
     color: var(--secondary-color);
 }
 
+/* Scenario Controls */
+.scenario-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.scenario-save-row,
+.scenario-load-row,
+.scenario-compare-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.scenario-controls input[type="text"] {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.scenario-controls select {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.scenario-controls button {
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    background: var(--primary-color);
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.scenario-controls button:hover {
+    background: #004d00;
+}
+
+#btn-delete-scenario {
+    background: #8b0000;
+    border-color: #8b0000;
+}
+
+#btn-delete-scenario:hover {
+    background: #6b0000;
+}
+
+#btn-compare {
+    background: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+#btn-compare:hover {
+    background: #e67e00;
+}
+
+/* Comparison Table */
+#comparison-container {
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+}
+
+#comparison-container h2 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.comparison-table th {
+    background: var(--bg-color);
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.comparison-table tr.changed {
+    background: #fff8e1;
+}
+
+.comparison-table td.diff-indicator {
+    font-weight: 700;
+    text-align: center;
+}
+
+.comparison-table td.diff-indicator.changed {
+    color: var(--secondary-color);
+}
+
+.btn-close-compare {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-color);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-close-compare:hover {
+    border-color: var(--primary-color);
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .container {

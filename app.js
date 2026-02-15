@@ -157,6 +157,10 @@ function displayResults(results, inputs) {
     `).join('');
 
     const html = `
+        <div class="export-buttons">
+            <button type="button" id="btn-export-csv" onclick="exportCSV()">Export CSV</button>
+            <button type="button" id="btn-print" onclick="window.print()">Print / PDF</button>
+        </div>
         <div class="results-summary">
             <h2>Simulation Summary</h2>
             <div class="summary-grid">
@@ -212,3 +216,133 @@ function displayResults(results, inputs) {
 
     container.innerHTML = html;
 }
+
+// --- Scenario Save/Load/Compare ---
+
+const SCENARIOS_KEY = 'ofsp_scenarios';
+
+function getSavedScenarios() {
+    try {
+        return JSON.parse(localStorage.getItem(SCENARIOS_KEY)) || {};
+    } catch {
+        return {};
+    }
+}
+
+function saveScenarios(scenarios) {
+    localStorage.setItem(SCENARIOS_KEY, JSON.stringify(scenarios));
+}
+
+function populateScenarioDropdowns() {
+    const scenarios = getSavedScenarios();
+    const names = Object.keys(scenarios).sort();
+    const selects = [
+        document.getElementById('scenario-select'),
+        document.getElementById('compare-a'),
+        document.getElementById('compare-b'),
+    ];
+
+    selects.forEach((sel, i) => {
+        const defaults = [
+            '<option value="">-- Load a scenario --</option>',
+            '<option value="">-- Scenario A --</option>',
+            '<option value="">-- Scenario B --</option>',
+        ];
+        sel.innerHTML = defaults[i] + names.map(n =>
+            `<option value="${n}">${n}</option>`
+        ).join('');
+    });
+}
+
+function getInputFieldLabels() {
+    const labels = {};
+    const form = document.getElementById('calc-form');
+    for (const label of form.querySelectorAll('label')) {
+        const forId = label.getAttribute('for');
+        if (forId) labels[forId] = label.textContent.trim();
+    }
+    return labels;
+}
+
+function showComparison(nameA, dataA, nameB, dataB) {
+    const container = document.getElementById('comparison-container');
+    const labels = getInputFieldLabels();
+    const allKeys = [...new Set([...Object.keys(dataA), ...Object.keys(dataB)])];
+
+    const rows = allKeys.map(key => {
+        const valA = dataA[key] ?? '';
+        const valB = dataB[key] ?? '';
+        const changed = valA !== valB;
+        const label = labels[key] || key;
+        return `<tr class="${changed ? 'changed' : ''}">
+            <td>${label}</td>
+            <td>${valA}</td>
+            <td>${valB}</td>
+            <td class="diff-indicator ${changed ? 'changed' : ''}">${changed ? '\u0394' : ''}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+        <h2>Comparing: ${nameA} vs ${nameB}</h2>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>${nameA}</th>
+                    <th>${nameB}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <button type="button" class="btn-close-compare" onclick="document.getElementById('comparison-container').style.display='none'">Close Comparison</button>
+    `;
+    container.style.display = 'block';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    populateScenarioDropdowns();
+
+    document.getElementById('btn-save-scenario').addEventListener('click', () => {
+        const name = document.getElementById('scenario-name').value.trim();
+        if (!name) { alert('Enter a scenario name.'); return; }
+        const scenarios = getSavedScenarios();
+        scenarios[name] = getInputs();
+        saveScenarios(scenarios);
+        document.getElementById('scenario-name').value = '';
+        populateScenarioDropdowns();
+    });
+
+    document.getElementById('btn-load-scenario').addEventListener('click', () => {
+        const name = document.getElementById('scenario-select').value;
+        if (!name) { alert('Select a scenario to load.'); return; }
+        const scenarios = getSavedScenarios();
+        const data = scenarios[name];
+        if (!data) return;
+        const form = document.getElementById('calc-form');
+        for (const [key, val] of Object.entries(data)) {
+            const el = form.elements[key];
+            if (el) { el.value = val; }
+        }
+        form.dispatchEvent(new Event('input'));
+    });
+
+    document.getElementById('btn-delete-scenario').addEventListener('click', () => {
+        const name = document.getElementById('scenario-select').value;
+        if (!name) { alert('Select a scenario to delete.'); return; }
+        if (!confirm(`Delete scenario "${name}"?`)) return;
+        const scenarios = getSavedScenarios();
+        delete scenarios[name];
+        saveScenarios(scenarios);
+        populateScenarioDropdowns();
+    });
+
+    document.getElementById('btn-compare').addEventListener('click', () => {
+        const nameA = document.getElementById('compare-a').value;
+        const nameB = document.getElementById('compare-b').value;
+        if (!nameA || !nameB) { alert('Select two scenarios to compare.'); return; }
+        if (nameA === nameB) { alert('Select two different scenarios.'); return; }
+        const scenarios = getSavedScenarios();
+        showComparison(nameA, scenarios[nameA], nameB, scenarios[nameB]);
+    });
+});

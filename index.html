@@ -17,7 +17,35 @@
     <main>
         <div class="container">
             <form id="calc-form" class="input-column">
-                
+
+                <fieldset id="scenarios-fieldset">
+                    <legend>Scenarios</legend>
+                    <div class="scenario-controls">
+                        <div class="scenario-save-row">
+                            <input type="text" id="scenario-name" placeholder="Scenario name...">
+                            <button type="button" id="btn-save-scenario">Save</button>
+                        </div>
+                        <div class="scenario-load-row">
+                            <select id="scenario-select">
+                                <option value="">-- Load a scenario --</option>
+                            </select>
+                            <button type="button" id="btn-load-scenario">Load</button>
+                            <button type="button" id="btn-delete-scenario">Delete</button>
+                        </div>
+                        <div class="scenario-compare-row">
+                            <select id="compare-a">
+                                <option value="">-- Scenario A --</option>
+                            </select>
+                            <select id="compare-b">
+                                <option value="">-- Scenario B --</option>
+                            </select>
+                            <button type="button" id="btn-compare">Compare</button>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div id="comparison-container" style="display:none;"></div>
+
                 <fieldset>
                     <legend>Key Model Inputs</legend>
                     <div class="form-grid">
