@@ -451,6 +451,153 @@ button[type="submit"]:hover {
     }
 }
 
+/* Tooltip Icons */
+.tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-style: italic;
+    cursor: help;
+    position: relative;
+    vertical-align: middle;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.tooltip-icon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.4;
+    white-space: normal;
+    width: 220px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.tooltip-icon:hover::after {
+    opacity: 1;
+}
+
+/* Input Validation */
+input.input-invalid {
+    border-color: #d32f2f;
+    background-color: #fff5f5;
+    box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.2);
+}
+
+.input-error {
+    display: block;
+    color: #d32f2f;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-top: 2px;
+    grid-column: span 1;
+}
+
+/* Sensitivity Analysis */
+.sensitivity-section {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    margin-top: 1.5rem;
+}
+
+.sensitivity-section h2 {
+    margin: 0 0 0.25rem 0;
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+.sensitivity-description {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.sensitivity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.sensitivity-controls label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.sensitivity-controls select {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.sensitivity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.sensitivity-table th,
+.sensitivity-table td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sensitivity-table th {
+    background: var(--bg-color);
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.sensitivity-table tr:last-child td {
+    border-bottom: none;
+}
+
+.sensitivity-base-row {
+    background: var(--bg-color);
+    font-weight: 600;
+}
+
+.sensitivity-delta {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.sensitivity-delta.positive {
+    color: #2e7d32;
+}
+
+.sensitivity-delta.negative {
+    color: #d32f2f;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .container {

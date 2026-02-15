@@ -17,7 +17,7 @@
 
     <main>
         <div class="container">
-            <form id="calc-form" class="input-column">
+            <form id="calc-form" class="input-column" novalidate>
 
                 <fieldset id="scenarios-fieldset">
                     <legend>Scenarios</legend>
@@ -50,116 +50,116 @@
                 <fieldset>
                     <legend>Key Model Inputs</legend>
                     <div class="form-grid">
-                        <label for="initial_slips">Initial Slips</label>
-                        <input type="number" id="initial_slips" value="1200000">
+                        <label for="initial_slips">Initial Slips <span class="tooltip-icon" data-tooltip="Number of vine slips planted in Generation 1. Typical range: 100,000 - 5,000,000.">i</span></label>
+                        <input type="number" id="initial_slips" value="1200000" min="1" required>
 
-                        <label for="initial_hectares">Initial Hectares (Gen 1)</label>
-                        <input type="number" step="0.1" id="initial_hectares" value="34.3">
-                        
-                        <label for="hectares_gen_2">Hectares (Gen 2)</label>
-                        <input type="number" step="0.1" id="hectares_gen_2" value="78.37">
-                        
-                        <label for="hectares_gen_3">Hectares (Gen 3)</label>
-                        <input type="number" step="0.1" id="hectares_gen_3" value="895.71">
+                        <label for="initial_hectares">Initial Hectares (Gen 1) <span class="tooltip-icon" data-tooltip="Land area for Generation 1 planting. Typical range: 1 - 500 hectares.">i</span></label>
+                        <input type="number" step="0.1" id="initial_hectares" value="34.3" min="0.1" required>
 
-                        <label for="tons_per_hectare">Tons per Hectare (Yield)</label>
-                        <input type="number" step="0.1" id="tons_per_hectare" value="15">
-                        
-                        <label for="tons_harvest_percent">Harvest % for Tonnage</label>
-                        <input type="number" step="0.01" id="tons_harvest_percent" value="0.90" title="The 90% factor from Sheet1 E26">
+                        <label for="hectares_gen_2">Hectares (Gen 2) <span class="tooltip-icon" data-tooltip="Land area for Generation 2. Usually larger than Gen 1 as more slips become available.">i</span></label>
+                        <input type="number" step="0.1" id="hectares_gen_2" value="78.37" min="0.1" required>
+
+                        <label for="hectares_gen_3">Hectares (Gen 3) <span class="tooltip-icon" data-tooltip="Land area for Generation 3. Typically the largest planting area.">i</span></label>
+                        <input type="number" step="0.1" id="hectares_gen_3" value="895.71" min="0.1" required>
+
+                        <label for="tons_per_hectare">Tons per Hectare (Yield) <span class="tooltip-icon" data-tooltip="Expected yield in tons per hectare. OFSP typically yields 10 - 25 tons/ha depending on conditions.">i</span></label>
+                        <input type="number" step="0.1" id="tons_per_hectare" value="15" min="0.1" required>
+
+                        <label for="tons_harvest_percent">Harvest % for Tonnage <span class="tooltip-icon" data-tooltip="Fraction of total production that is harvestable. 0.90 = 90% harvest efficiency. Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="tons_harvest_percent" value="0.90" min="0.01" max="1" required>
                     </div>
                 </fieldset>
 
                 <fieldset>
                     <legend>Regeneration & Loss Factors</legend>
                     <div class="form-grid">
-                        <label for="potatoes_per_plant">Potatoes per Plant</label>
-                        <input type="number" id="potatoes_per_plant" value="4">
-                        
-                        <label for="vine_cuttings_per_plant">Vine Cuttings (per plant)</label>
-                        <input type="number" id="vine_cuttings_per_plant" value="3" title="This is used to calculate the 1a, 1b, 1c generations">
+                        <label for="potatoes_per_plant">Potatoes per Plant <span class="tooltip-icon" data-tooltip="Average number of tubers each plant produces. Typical range: 2 - 8.">i</span></label>
+                        <input type="number" id="potatoes_per_plant" value="4" min="1" required>
 
-                        <label for="replant_percent">Tuber Replant % (for next Gen)</label>
-                        <input type="number" step="0.01" id="replant_percent" value="0.10">
+                        <label for="vine_cuttings_per_plant">Vine Cuttings (per plant) <span class="tooltip-icon" data-tooltip="Number of vine cuttings taken from each surviving plant for sub-generations (1a, 1b, 1c, etc.). Typical: 2 - 5.">i</span></label>
+                        <input type="number" id="vine_cuttings_per_plant" value="3" min="1" required>
 
-                        <label for="slips_from_replant">Slips from Replanted Tuber</label>
-                        <input type="number" id="slips_from_replant" value="5">
-                        
-                        <label for="mortality_rate">Mortality Rate</label>
-                        <input type="number" step="0.01" id="mortality_rate" value="0.85">
+                        <label for="replant_percent">Tuber Replant % (for next Gen) <span class="tooltip-icon" data-tooltip="Fraction of harvested tubers set aside for replanting. 0.10 = 10%. Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="replant_percent" value="0.10" min="0.01" max="1" required>
 
-                        <label for="crop_damage_loss">Crop Damage Loss</label>
-                        <input type="number" step="0.01" id="crop_damage_loss" value="0.83">
+                        <label for="slips_from_replant">Slips from Replanted Tuber <span class="tooltip-icon" data-tooltip="Number of slips each replanted tuber produces. Typical: 3 - 8.">i</span></label>
+                        <input type="number" id="slips_from_replant" value="5" min="1" required>
 
-                        <label for="storage_loss">Storage Loss</label>
-                        <input type="number" step="0.01" id="storage_loss" value="0.90">
+                        <label for="mortality_rate">Mortality Rate <span class="tooltip-icon" data-tooltip="Survival fraction of planted slips. 0.85 = 85% survive. This is a survival rate, not a death rate. Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="mortality_rate" value="0.85" min="0.01" max="1" required>
+
+                        <label for="crop_damage_loss">Crop Damage Loss <span class="tooltip-icon" data-tooltip="Fraction surviving crop damage (pests, weather). 0.83 = 83% survives. Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="crop_damage_loss" value="0.83" min="0.01" max="1" required>
+
+                        <label for="storage_loss">Storage Loss <span class="tooltip-icon" data-tooltip="Fraction surviving post-harvest storage. 0.90 = 90% survives storage. Range: 0.01 - 1.0.">i</span></label>
+                        <input type="number" step="0.01" id="storage_loss" value="0.90" min="0.01" max="1" required>
                     </div>
                 </fieldset>
                 
                 <fieldset>
                     <legend>Nutrition & Logistics</legend>
                     <div class="form-grid">
-                        <label for="people_to_feed">People to Feed</label>
-                        <input type="number" id="people_to_feed" value="1000000">
+                        <label for="people_to_feed">People to Feed <span class="tooltip-icon" data-tooltip="Target population to provide nutrition for. Used to calculate days of food supply.">i</span></label>
+                        <input type="number" id="people_to_feed" value="1000000" min="1" required>
 
-                        <label for="calorie_target_per_person">Calorie Target (per person/day)</label>
-                        <input type="number" id="calorie_target_per_person" value="800">
-                        
-                        <label for="calories_per_potato_with_leaves">Calories (Potato + Leaves)</label>
-                        <input type="number" id="calories_per_potato_with_leaves" value="126">
-                        
-                        <label for="grams_per_potato">Grams per Potato (avg)</label>
-                        <input type="number" id="grams_per_potato" value="158" min="1">
+                        <label for="calorie_target_per_person">Calorie Target (per person/day) <span class="tooltip-icon" data-tooltip="Daily calorie target per person from OFSP. 800 kcal is a supplemental target, not full daily intake. Range: 100 - 3000.">i</span></label>
+                        <input type="number" id="calorie_target_per_person" value="800" min="1" required>
 
-                        <label for="grams_per_ton">Grams per Ton</label>
-                        <input type="number" id="grams_per_ton" value="907185" min="1">
+                        <label for="calories_per_potato_with_leaves">Calories (Potato + Leaves) <span class="tooltip-icon" data-tooltip="Total calories from one average potato including edible leaves. Typical: 100 - 200 kcal.">i</span></label>
+                        <input type="number" id="calories_per_potato_with_leaves" value="126" min="1" required>
+
+                        <label for="grams_per_potato">Grams per Potato (avg) <span class="tooltip-icon" data-tooltip="Average weight of one potato in grams. Used to convert between potato count and tonnage. Typical: 100 - 300g.">i</span></label>
+                        <input type="number" id="grams_per_potato" value="158" min="1" required>
+
+                        <label for="grams_per_ton">Grams per Ton <span class="tooltip-icon" data-tooltip="Conversion factor: grams in one ton. 907,185g = 1 US short ton. Usually not changed.">i</span></label>
+                        <input type="number" id="grams_per_ton" value="907185" min="1" required>
                     </div>
                 </fieldset>
 
                 <fieldset>
                     <legend>Cost Inputs (per Hectare)</legend>
                     <div class="form-grid">
-                        <label for="acres_per_hectare">Acres per Hectare</label>
-                        <input type="number" step="0.00001" id="acres_per_hectare" value="2.47105">
+                        <label for="acres_per_hectare">Acres per Hectare <span class="tooltip-icon" data-tooltip="Conversion factor: 1 hectare = 2.47105 acres. Usually not changed.">i</span></label>
+                        <input type="number" step="0.00001" id="acres_per_hectare" value="2.47105" min="0.01" required>
 
-                        <label for="cost_irrigation_per_acre">Irrigation ($ / Acre)</label>
-                        <input type="number" id="cost_irrigation_per_acre" value="2500">
-                        
-                        <label for="cost_slip_per_unit">Cost per Slip ($)</label>
-                        <input type="number" step="0.01" id="cost_slip_per_unit" value="0.15">
-                        
-                        <label for="cost_land_clearing_per_acre">Labor: Land Clearing ($ / Acre)</label>
-                        <input type="number" id="cost_land_clearing_per_acre" value="480">
-                        
-                        <label for="cost_forking_per_acre">Labor: Forking ($ / Acre)</label>
-                        <input type="number" id="cost_forking_per_acre" value="800">
-                        
-                        <label for="cost_planting_per_acre">Labor: Planting ($ / Acre)</label>
-                        <input type="number" id="cost_planting_per_acre" value="600">
-                        
-                        <label for="cost_weeding_per_acre">Labor: Weeding ($ / Acre)</label>
-                        <input type="number" id="cost_weeding_per_acre" value="1200">
-                        
-                        <label for="cost_fertilizer_app_per_acre">Labor: Fertilizer App ($ / Acre)</label>
-                        <input type="number" id="cost_fertilizer_app_per_acre" value="80">
-                        
-                        <label for="cost_harvesting_per_acre">Labor: Harvesting ($ / Acre)</label>
-                        <input type="number" id="cost_harvesting_per_acre" value="600">
-                        
-                        <label for="cost_herbicide_per_acre">Supplies: Herbicide ($ / Acre)</label>
-                        <input type="number" id="cost_herbicide_per_acre" value="205">
-                        
-                        <label for="cost_fertilizer_per_acre">Supplies: Fertilizer ($ / Acre)</label>
-                        <input type="number" id="cost_fertilizer_per_acre" value="360">
-                        
-                        <label for="cost_tools_per_acre">Supplies: Tools ($ / Acre)</label>
-                        <input type="number" id="cost_tools_per_acre" value="475">
-                        
-                        <label for="cost_other_per_acre">Supplies: Other ($ / Acre)</label>
-                        <input type="number" id="cost_other_per_acre" value="65">
-                        
-                        <label for="cost_transport_per_acre">Supplies: Transport ($ / Acre)</label>
-                        <input type="number" id="cost_transport_per_acre" value="300">
+                        <label for="cost_irrigation_per_acre">Irrigation ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of irrigation infrastructure and water per acre. Varies widely by region.">i</span></label>
+                        <input type="number" id="cost_irrigation_per_acre" value="2500" min="0" required>
+
+                        <label for="cost_slip_per_unit">Cost per Slip ($) <span class="tooltip-icon" data-tooltip="Purchase price per vine slip. Only applied to Generation 1 (subsequent gens use replanted material). Typical: $0.05 - $0.50.">i</span></label>
+                        <input type="number" step="0.01" id="cost_slip_per_unit" value="0.15" min="0" required>
+
+                        <label for="cost_land_clearing_per_acre">Labor: Land Clearing ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost to clear land per acre before planting.">i</span></label>
+                        <input type="number" id="cost_land_clearing_per_acre" value="480" min="0" required>
+
+                        <label for="cost_forking_per_acre">Labor: Forking ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for soil preparation (forking/tilling) per acre.">i</span></label>
+                        <input type="number" id="cost_forking_per_acre" value="800" min="0" required>
+
+                        <label for="cost_planting_per_acre">Labor: Planting ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for planting slips per acre.">i</span></label>
+                        <input type="number" id="cost_planting_per_acre" value="600" min="0" required>
+
+                        <label for="cost_weeding_per_acre">Labor: Weeding ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for weeding per acre over the growth cycle.">i</span></label>
+                        <input type="number" id="cost_weeding_per_acre" value="1200" min="0" required>
+
+                        <label for="cost_fertilizer_app_per_acre">Labor: Fertilizer App ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for applying fertilizer per acre.">i</span></label>
+                        <input type="number" id="cost_fertilizer_app_per_acre" value="80" min="0" required>
+
+                        <label for="cost_harvesting_per_acre">Labor: Harvesting ($ / Acre) <span class="tooltip-icon" data-tooltip="Labor cost for harvesting per acre.">i</span></label>
+                        <input type="number" id="cost_harvesting_per_acre" value="600" min="0" required>
+
+                        <label for="cost_herbicide_per_acre">Supplies: Herbicide ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of herbicide supplies per acre.">i</span></label>
+                        <input type="number" id="cost_herbicide_per_acre" value="205" min="0" required>
+
+                        <label for="cost_fertilizer_per_acre">Supplies: Fertilizer ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of fertilizer supplies per acre.">i</span></label>
+                        <input type="number" id="cost_fertilizer_per_acre" value="360" min="0" required>
+
+                        <label for="cost_tools_per_acre">Supplies: Tools ($ / Acre) <span class="tooltip-icon" data-tooltip="Cost of tools and equipment per acre.">i</span></label>
+                        <input type="number" id="cost_tools_per_acre" value="475" min="0" required>
+
+                        <label for="cost_other_per_acre">Supplies: Other ($ / Acre) <span class="tooltip-icon" data-tooltip="Miscellaneous supply costs per acre.">i</span></label>
+                        <input type="number" id="cost_other_per_acre" value="65" min="0" required>
+
+                        <label for="cost_transport_per_acre">Supplies: Transport ($ / Acre) <span class="tooltip-icon" data-tooltip="Transportation cost per acre for moving inputs and harvest.">i</span></label>
+                        <input type="number" id="cost_transport_per_acre" value="300" min="0" required>
                     </div>
                 </fieldset>
 
