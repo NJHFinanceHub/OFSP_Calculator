@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('calc-form');
 
     function run() {
+        if (!validateForm()) return;
         const inputs = getInputs();
         const results = calculateSimulation(inputs);
         displayResults(results, inputs);
@@ -20,13 +21,68 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
+ * Validates all number inputs. Returns true if valid, false otherwise.
+ * Highlights invalid fields and shows inline error messages.
+ */
+function validateForm() {
+    const form = document.getElementById('calc-form');
+    const numberInputs = form.querySelectorAll('input[type="number"]');
+    let allValid = true;
+
+    numberInputs.forEach(input => {
+        const errorEl = input.parentElement.querySelector('.input-error');
+        if (errorEl) errorEl.remove();
+        input.classList.remove('input-invalid');
+
+        const raw = input.value.trim();
+        if (raw === '') {
+            markInvalid(input, 'Value is required');
+            allValid = false;
+            return;
+        }
+
+        const val = parseFloat(raw);
+        if (!Number.isFinite(val)) {
+            markInvalid(input, 'Must be a valid number');
+            allValid = false;
+            return;
+        }
+
+        const min = input.hasAttribute('min') ? parseFloat(input.getAttribute('min')) : null;
+        const max = input.hasAttribute('max') ? parseFloat(input.getAttribute('max')) : null;
+
+        if (min !== null && val < min) {
+            markInvalid(input, `Minimum value is ${min}`);
+            allValid = false;
+            return;
+        }
+
+        if (max !== null && val > max) {
+            markInvalid(input, `Maximum value is ${max}`);
+            allValid = false;
+            return;
+        }
+    });
+
+    return allValid;
+}
+
+function markInvalid(input, message) {
+    input.classList.add('input-invalid');
+    const err = document.createElement('span');
+    err.className = 'input-error';
+    err.textContent = message;
+    input.insertAdjacentElement('afterend', err);
+}
+
+/**
  * Grabs all values from the form and returns them as an object.
  */
 function getInputs() {
     const inputs = {};
     const formElements = document.getElementById('calc-form').elements;
     for (const element of formElements) {
-        if (element.id) {
+        if (element.id && element.type === 'number') {
             const val = parseFloat(element.value);
             inputs[element.id] = Number.isFinite(val) ? val : 0;
         }
@@ -142,9 +198,9 @@ function calculateSimulation(inputs) {
  */
 function displayResults(results, inputs) {
     const container = document.getElementById('results-container');
-    const fNum = (num, dec = 2) => num.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
-    const fInt = (num) => num.toLocaleString(undefined, { maximumFractionDigits: 0 });
-    const fDol = (num, dec = 0) => num.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: dec, maximumFractionDigits: dec });
+    const fNum = (num, dec = 2) => Number.isFinite(num) ? num.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '0';
+    const fInt = (num) => Number.isFinite(num) ? num.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '0';
+    const fDol = (num, dec = 0) => Number.isFinite(num) ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: dec, maximumFractionDigits: dec }) : '$0';
 
     const genRows = results.all_gens.map(gen => `
         <tr>
@@ -155,6 +211,11 @@ function displayResults(results, inputs) {
             <td>${fDol(gen.cost)}</td>
         </tr>
     `).join('');
+
+    const sensitivityInputs = getSensitivityInputOptions();
+    const sensitivityOptions = sensitivityInputs.map(opt =>
+        `<option value="${opt.id}">${opt.label}</option>`
+    ).join('');
 
     const html = `
         <div class="export-buttons">
@@ -212,9 +273,113 @@ function displayResults(results, inputs) {
                 </tr>
             </tbody>
         </table>
+
+        <div class="sensitivity-section">
+            <h2>Sensitivity Analysis</h2>
+            <p class="sensitivity-description">See how varying a single input by +/- 25% affects key outputs.</p>
+            <div class="sensitivity-controls">
+                <label for="sensitivity-input">Vary input:</label>
+                <select id="sensitivity-input">
+                    ${sensitivityOptions}
+                </select>
+            </div>
+            <div id="sensitivity-results"></div>
+        </div>
     `;
 
     container.innerHTML = html;
+
+    // Attach sensitivity handler
+    const sensitivitySelect = document.getElementById('sensitivity-input');
+    const renderSensitivity = () => runSensitivityAnalysis(sensitivitySelect.value, inputs);
+    sensitivitySelect.addEventListener('change', renderSensitivity);
+    renderSensitivity();
+}
+
+/**
+ * Returns the list of inputs available for sensitivity analysis.
+ */
+function getSensitivityInputOptions() {
+    const options = [
+        { id: 'initial_slips', label: 'Initial Slips' },
+        { id: 'initial_hectares', label: 'Initial Hectares' },
+        { id: 'tons_per_hectare', label: 'Tons per Hectare' },
+        { id: 'tons_harvest_percent', label: 'Harvest %' },
+        { id: 'potatoes_per_plant', label: 'Potatoes per Plant' },
+        { id: 'vine_cuttings_per_plant', label: 'Vine Cuttings per Plant' },
+        { id: 'replant_percent', label: 'Tuber Replant %' },
+        { id: 'slips_from_replant', label: 'Slips from Replant' },
+        { id: 'mortality_rate', label: 'Mortality Rate' },
+        { id: 'crop_damage_loss', label: 'Crop Damage Loss' },
+        { id: 'storage_loss', label: 'Storage Loss' },
+        { id: 'people_to_feed', label: 'People to Feed' },
+        { id: 'calorie_target_per_person', label: 'Calorie Target' },
+        { id: 'cost_irrigation_per_acre', label: 'Irrigation Cost' },
+        { id: 'cost_slip_per_unit', label: 'Cost per Slip' },
+    ];
+    return options;
+}
+
+/**
+ * Runs sensitivity analysis: varies the selected input by -25%, -10%, base, +10%, +25%
+ * and displays a mini-table showing total_days_fed and total_cost at each level.
+ */
+function runSensitivityAnalysis(inputId, baseInputs) {
+    const container = document.getElementById('sensitivity-results');
+    if (!inputId || !baseInputs[inputId] === undefined) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const baseValue = baseInputs[inputId];
+    const steps = [
+        { label: '-25%', factor: 0.75 },
+        { label: '-10%', factor: 0.90 },
+        { label: 'Base', factor: 1.00 },
+        { label: '+10%', factor: 1.10 },
+        { label: '+25%', factor: 1.25 },
+    ];
+
+    const fNum = (num, dec = 1) => Number.isFinite(num) ? num.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '0';
+    const fDol = (num) => Number.isFinite(num) ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : '$0';
+    const fVal = (num) => {
+        if (!Number.isFinite(num)) return '0';
+        if (Math.abs(num) >= 1000) return num.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+    };
+
+    const baseResults = calculateSimulation(baseInputs);
+
+    const rows = steps.map(step => {
+        const modifiedInputs = { ...baseInputs };
+        modifiedInputs[inputId] = baseValue * step.factor;
+        const results = calculateSimulation(modifiedInputs);
+        const daysDelta = results.total_days_fed - baseResults.total_days_fed;
+        const costDelta = results.total_cost - baseResults.total_cost;
+
+        return `<tr class="${step.factor === 1.00 ? 'sensitivity-base-row' : ''}">
+            <td>${step.label}</td>
+            <td>${fVal(modifiedInputs[inputId])}</td>
+            <td>${fNum(results.total_days_fed)}${step.factor !== 1.00 ? ` <span class="sensitivity-delta ${daysDelta >= 0 ? 'positive' : 'negative'}">(${daysDelta >= 0 ? '+' : ''}${fNum(daysDelta)})</span>` : ''}</td>
+            <td>${fDol(results.total_cost)}${step.factor !== 1.00 ? ` <span class="sensitivity-delta ${costDelta <= 0 ? 'positive' : 'negative'}">(${costDelta >= 0 ? '+' : ''}${fDol(costDelta)})</span>` : ''}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+        <table class="sensitivity-table">
+            <thead>
+                <tr>
+                    <th>Variation</th>
+                    <th>Input Value</th>
+                    <th>Days Fed</th>
+                    <th>Total Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+    `;
 }
 
 // --- Scenario Save/Load/Compare ---
@@ -298,6 +463,34 @@ function showComparison(nameA, dataA, nameB, dataB) {
         <button type="button" class="btn-close-compare" onclick="document.getElementById('comparison-container').style.display='none'">Close Comparison</button>
     `;
     container.style.display = 'block';
+}
+
+function exportCSV() {
+    const inputs = getInputs();
+    const results = calculateSimulation(inputs);
+    const rows = [
+        ['Generation', 'Hectares', 'Slips Planted', 'Potatoes Harvested', 'Tons Harvested', 'Days Fed', 'Cost'],
+    ];
+    results.all_gens.forEach(gen => {
+        rows.push([gen.name, gen.hectares, gen.slips_planted, gen.potatoes_harvested, gen.tons_harvested, gen.days_fed, gen.cost]);
+    });
+    rows.push([]);
+    rows.push(['Summary']);
+    rows.push(['Total Tons Harvested', results.total_tons]);
+    rows.push(['Total Days People Fed', results.total_days_fed]);
+    rows.push(['Total Cost', results.total_cost]);
+    rows.push(['Cost per Person (Full Period)', results.cost_per_person_full_period]);
+    rows.push(['Cost per Person per Day', results.cost_per_person_per_day]);
+    rows.push(['People to Feed', inputs.people_to_feed]);
+
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ofsp_simulation.csv';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
