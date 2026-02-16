@@ -1,11 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('calc-form');
 
+    // Track last simulation results for farmOS sync
+    let lastResults = null;
+    let lastInputs = null;
+
     function run() {
         if (!validateForm()) return;
         const inputs = getInputs();
         const results = calculateSimulation(inputs);
         displayResults(results, inputs);
+        lastResults = results;
+        lastInputs = inputs;
+        // Enable sync button if connected
+        const syncBtn = document.getElementById('btn-farmos-sync');
+        if (syncBtn && window._farmosConnector && window._farmosConnector.isConnected) {
+            syncBtn.disabled = false;
+        }
     }
 
     form.addEventListener('submit', (e) => {
@@ -16,6 +27,93 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-calculate when any input changes
     form.addEventListener('input', run);
     form.addEventListener('change', run);
+
+    // ── farmOS connector wiring ──────────────────────────────────
+    window._farmosConnector = new FarmOSConnector();
+
+    const btnConnect = document.getElementById('btn-farmos-connect');
+    const btnSync = document.getElementById('btn-farmos-sync');
+    const statusDot = document.querySelector('.farmos-dot');
+    const statusText = document.getElementById('farmos-status-text');
+    const progressDiv = document.getElementById('farmos-progress');
+    const progressFill = document.getElementById('farmos-progress-fill');
+    const progressText = document.getElementById('farmos-progress-text');
+    const resultsDiv = document.getElementById('farmos-results');
+
+    if (btnConnect) {
+        btnConnect.addEventListener('click', async () => {
+            const url = document.getElementById('farmos_url').value.trim();
+            const user = document.getElementById('farmos_username').value.trim();
+            const pass = document.getElementById('farmos_password').value;
+
+            if (!url || !user || !pass) {
+                statusText.textContent = 'Please fill in all connection fields';
+                return;
+            }
+
+            btnConnect.disabled = true;
+            statusText.textContent = 'Connecting...';
+
+            try {
+                await window._farmosConnector.connect(url, user, pass);
+                statusDot.className = 'farmos-dot connected';
+                statusText.textContent = `Connected to ${url}`;
+                btnConnect.textContent = 'Reconnect';
+                if (lastResults) btnSync.disabled = false;
+            } catch (err) {
+                statusDot.className = 'farmos-dot disconnected';
+                statusText.textContent = `Error: ${err.message}`;
+                btnSync.disabled = true;
+            } finally {
+                btnConnect.disabled = false;
+            }
+        });
+    }
+
+    if (btnSync) {
+        btnSync.addEventListener('click', async () => {
+            if (!window._farmosConnector.isConnected || !lastResults) return;
+
+            btnSync.disabled = true;
+            progressDiv.style.display = 'block';
+            resultsDiv.style.display = 'none';
+
+            const seasonName = document.getElementById('farmos_season').value.trim() || 'OFSP Program';
+
+            try {
+                const summary = await window._farmosConnector.syncSimulation(
+                    lastResults,
+                    lastInputs,
+                    { seasonName },
+                    (msg, current, total) => {
+                        const pct = Math.round((current / total) * 100);
+                        progressFill.style.width = pct + '%';
+                        progressText.textContent = msg;
+                    }
+                );
+
+                progressDiv.style.display = 'none';
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = `
+                    <p class="farmos-success">Sync complete!</p>
+                    <ul>
+                        <li>${summary.terms} taxonomy terms</li>
+                        <li>${summary.lands} land assets</li>
+                        <li>${summary.plants} plant assets</li>
+                        <li>${summary.seedings} seeding logs</li>
+                        <li>${summary.harvests} harvest logs</li>
+                        <li>${summary.inputs} input/cost logs</li>
+                    </ul>
+                `;
+            } catch (err) {
+                progressDiv.style.display = 'none';
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = `<p class="farmos-error">Sync failed: ${escapeHtml(err.message)}</p>`;
+            } finally {
+                btnSync.disabled = false;
+            }
+        });
+    }
 
     // Run once on load with default values
     run();

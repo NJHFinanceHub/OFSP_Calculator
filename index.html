@@ -38,6 +38,36 @@
         <div class="container">
             <form id="calc-form" class="input-column" novalidate>
 
+                <fieldset id="farmos-fieldset">
+                    <legend>farmOS Connection</legend>
+                    <div class="farmos-status" id="farmos-status">
+                        <span class="farmos-dot disconnected"></span>
+                        <span id="farmos-status-text">Not connected</span>
+                    </div>
+                    <div class="form-grid">
+                        <label for="farmos_url">farmOS URL <span class="tooltip-icon" data-tooltip="Full URL of your farmOS instance, e.g. https://your-farm.farmos.net. CORS must be enabled (default in farmOS 2.x).">i</span></label>
+                        <input type="url" id="farmos_url" placeholder="https://your-farm.farmos.net">
+
+                        <label for="farmos_username">Username</label>
+                        <input type="text" id="farmos_username" placeholder="farm_manager">
+
+                        <label for="farmos_password">Password</label>
+                        <input type="password" id="farmos_password">
+
+                        <label for="farmos_season">Season Name <span class="tooltip-icon" data-tooltip="Name for this program/season in farmOS. Groups all generated assets and logs together.">i</span></label>
+                        <input type="text" id="farmos_season" placeholder="2026 OFSP Program" value="2026 OFSP Program">
+                    </div>
+                    <div class="farmos-buttons">
+                        <button type="button" id="btn-farmos-connect">Connect</button>
+                        <button type="button" id="btn-farmos-sync" disabled>Sync to farmOS</button>
+                    </div>
+                    <div id="farmos-progress" class="farmos-progress" style="display:none;">
+                        <div class="farmos-progress-bar"><div class="farmos-progress-fill" id="farmos-progress-fill"></div></div>
+                        <p class="farmos-progress-text" id="farmos-progress-text"></p>
+                    </div>
+                    <div id="farmos-results" class="farmos-results" style="display:none;"></div>
+                </fieldset>
+
                 <fieldset id="scenarios-fieldset">
                     <legend>Scenarios</legend>
                     <div class="scenario-controls">
@@ -244,6 +274,7 @@
         </div>
     </footer>
 
+    <script src="farmos-connector.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
