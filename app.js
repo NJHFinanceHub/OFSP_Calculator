@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+  try {
     const form = document.getElementById('calc-form');
+    if (!form) {
+        console.error('calc-form element not found');
+        return;
+    }
 
     // Track last simulation results for farmOS sync
     let lastResults = null;
@@ -7,15 +12,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function run() {
         if (!validateForm()) return;
-        const inputs = getInputs();
-        const results = calculateSimulation(inputs);
-        displayResults(results, inputs);
-        lastResults = results;
-        lastInputs = inputs;
-        // Enable sync button if connected
-        const syncBtn = document.getElementById('btn-farmos-sync');
-        if (syncBtn && window._farmosConnector && window._farmosConnector.isConnected) {
-            syncBtn.disabled = false;
+        try {
+            const inputs = getInputs();
+            const results = calculateSimulation(inputs);
+            displayResults(results, inputs);
+            lastResults = results;
+            lastInputs = inputs;
+            // Enable sync button if connected
+            const syncBtn = document.getElementById('btn-farmos-sync');
+            if (syncBtn && window._farmosConnector && window._farmosConnector.isConnected) {
+                syncBtn.disabled = false;
+            }
+        } catch (err) {
+            console.error('Simulation error:', err);
+            const container = document.getElementById('results-container');
+            if (container) {
+                container.textContent = '';
+                const errP = document.createElement('p');
+                errP.className = 'farmos-error';
+                errP.textContent = 'An error occurred during simulation. Please check your inputs and try again.';
+                container.appendChild(errP);
+            }
         }
     }
 
@@ -94,21 +111,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 progressDiv.style.display = 'none';
                 resultsDiv.style.display = 'block';
-                resultsDiv.innerHTML = `
-                    <p class="farmos-success">Sync complete!</p>
-                    <ul>
-                        <li>${summary.terms} taxonomy terms</li>
-                        <li>${summary.lands} land assets</li>
-                        <li>${summary.plants} plant assets</li>
-                        <li>${summary.seedings} seeding logs</li>
-                        <li>${summary.harvests} harvest logs</li>
-                        <li>${summary.inputs} input/cost logs</li>
-                    </ul>
-                `;
+                resultsDiv.textContent = '';
+                const successP = document.createElement('p');
+                successP.className = 'farmos-success';
+                successP.textContent = 'Sync complete!';
+                resultsDiv.appendChild(successP);
+                const ul = document.createElement('ul');
+                const summaryItems = [
+                    [summary.terms, 'taxonomy terms'],
+                    [summary.lands, 'land assets'],
+                    [summary.plants, 'plant assets'],
+                    [summary.seedings, 'seeding logs'],
+                    [summary.harvests, 'harvest logs'],
+                    [summary.inputs, 'input/cost logs'],
+                ];
+                summaryItems.forEach(([count, label]) => {
+                    const li = document.createElement('li');
+                    li.textContent = count + ' ' + label;
+                    ul.appendChild(li);
+                });
+                resultsDiv.appendChild(ul);
             } catch (err) {
                 progressDiv.style.display = 'none';
                 resultsDiv.style.display = 'block';
-                resultsDiv.innerHTML = `<p class="farmos-error">Sync failed: ${escapeHtml(err.message)}</p>`;
+                resultsDiv.textContent = '';
+                const errP = document.createElement('p');
+                errP.className = 'farmos-error';
+                errP.textContent = 'Sync failed: ' + err.message;
+                resultsDiv.appendChild(errP);
             } finally {
                 btnSync.disabled = false;
             }
@@ -117,6 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Run once on load with default values
     run();
+  } catch (initErr) {
+    console.error('Initialization error:', initErr);
+    var body = document.body;
+    if (body) {
+        var msg = document.createElement('div');
+        msg.style.cssText = 'padding:2rem;color:#8b0000;font-family:sans-serif;';
+        msg.textContent = 'Application failed to initialize. Please refresh the page or check the browser console for details.';
+        body.insertBefore(msg, body.firstChild);
+    }
+  }
 });
 
 /**
@@ -158,6 +198,41 @@ function validateForm() {
 
         if (max !== null && val > max) {
             markInvalid(input, `Maximum value is ${max}`);
+            allValid = false;
+            return;
+        }
+
+        // Range validation for rate fields (must be 0-1)
+        const rateFields = ['slip_survival_rate', 'crop_survival_rate', 'storage_survival_rate'];
+        if (rateFields.includes(input.id)) {
+            if (val < 0 || val > 1) {
+                markInvalid(input, 'Rate must be between 0 and 1');
+                allValid = false;
+                return;
+            }
+        }
+
+        // initial_hectares: 0.01 - 10000
+        if (input.id === 'initial_hectares') {
+            if (val < 0.01 || val > 10000) {
+                markInvalid(input, 'Hectares must be between 0.01 and 10,000');
+                allValid = false;
+                return;
+            }
+        }
+
+        // initial_slips: positive integer
+        if (input.id === 'initial_slips') {
+            if (val <= 0 || !Number.isInteger(val)) {
+                markInvalid(input, 'Slips must be a positive whole number');
+                allValid = false;
+                return;
+            }
+        }
+
+        // All numeric fields must be positive (> 0)
+        if (val <= 0) {
+            markInvalid(input, 'Value must be greater than zero');
             allValid = false;
             return;
         }
@@ -542,7 +617,7 @@ function getSensitivityInputOptions() {
 function runSensitivityAnalysis(inputId, baseInputs) {
     const container = document.getElementById('sensitivity-results');
     if (!inputId || baseInputs[inputId] === undefined) {
-        container.innerHTML = '';
+        container.textContent = '';
         return;
     }
 
@@ -884,6 +959,7 @@ function renderTimeline(inputs) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  try {
     populateScenarioDropdowns();
 
     document.getElementById('btn-save-scenario').addEventListener('click', () => {
@@ -933,6 +1009,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const scenarios = getSavedScenarios();
         showComparison(nameA, scenarios[nameA], nameB, scenarios[nameB]);
     });
+  } catch (initErr) {
+    console.error('Scenario panel initialization error:', initErr);
+  }
 });
 
 document.addEventListener('click', (e) => {
