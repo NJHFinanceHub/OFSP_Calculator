@@ -89,6 +89,9 @@
                             <select id="compare-b">
                                 <option value="">-- Scenario B --</option>
                             </select>
+                            <select id="compare-c">
+                                <option value="">-- Scenario C (optional) --</option>
+                            </select>
                             <button type="button" id="btn-compare">Compare</button>
                         </div>
                     </div>
@@ -98,26 +101,26 @@
 
                 <fieldset>
                     <legend>Key Model Inputs</legend>
-                    <div class="yield-mode-toggle">
-                        <span class="yield-mode-label">Yield calculation mode:</span>
-                        <label class="radio-label"><input type="radio" name="yield_mode" value="per_hectare" checked> Yield per Hectare <span class="tooltip-icon" data-tooltip="Use tons/ha as the primary yield driver. Potato counts are derived backward from tonnage. This matches how agronomists typically think about yield.">i</span></label>
-                        <label class="radio-label"><input type="radio" name="yield_mode" value="per_plant"> Per Plant <span class="tooltip-icon" data-tooltip="Calculate tonnage from individual plant output (slips x potatoes/plant x grams). Use this when you know plant-level productivity.">i</span></label>
-                    </div>
                     <div class="form-grid">
-                        <label for="initial_slips">Initial Slips <span class="tooltip-icon" data-tooltip="Number of vine slips planted in Generation 1. Typical range: 100,000 - 5,000,000.">i</span></label>
+                        <label for="country_preset">Country Preset <span class="tooltip-icon" data-tooltip="Select a country to load typical yield and density values. Choose 'Custom' to set your own.">i</span></label>
+                        <select id="country_preset" onchange="applyCountryPreset(this.value)">
+                            <option value="haiti" selected>Haiti (rainfed) — 10 t/ha, 33,000/ha</option>
+                            <option value="nigeria">Nigeria — 8 t/ha, 33,000/ha</option>
+                            <option value="malawi">Malawi — 7 t/ha, 30,000/ha</option>
+                            <option value="india">India — 18 t/ha, 35,000/ha</option>
+                            <option value="ethiopia">Ethiopia — 9 t/ha, 33,000/ha</option>
+                            <option value="philippines">Philippines — 12 t/ha, 33,000/ha</option>
+                            <option value="custom">Custom</option>
+                        </select>
+
+                        <label for="initial_slips">Initial Slips <span class="tooltip-icon" data-tooltip="Number of vine slips planted in Generation 1. Area is derived from slips / planting density.">i</span></label>
                         <input type="number" id="initial_slips" value="1200000" min="1" required>
 
-                        <label for="initial_hectares">Initial Hectares (Gen 1) <span class="tooltip-icon" data-tooltip="Land area for Generation 1 planting. Typical range: 1 - 500 hectares.">i</span></label>
-                        <input type="number" step="0.1" id="initial_hectares" value="34.3" min="0.1" required>
+                        <label for="planting_density">Slips per Hectare <span class="tooltip-icon" data-tooltip="How many slips fit in one hectare at your spacing. Standard: 33,000 (rows 1m apart, plants 30cm). Range: 20,000-65,000.">i</span></label>
+                        <input type="number" id="planting_density" value="33000" min="20000" max="65000" required>
 
-                        <label for="hectares_gen_2">Hectares (Gen 2) <span class="tooltip-icon" data-tooltip="Land area for Generation 2. Usually larger than Gen 1 as more slips become available.">i</span></label>
-                        <input type="number" step="0.1" id="hectares_gen_2" value="78.37" min="0.1" required>
-
-                        <label for="hectares_gen_3">Hectares (Gen 3) <span class="tooltip-icon" data-tooltip="Land area for Generation 3. Typically the largest planting area.">i</span></label>
-                        <input type="number" step="0.1" id="hectares_gen_3" value="895.71" min="0.1" required>
-
-                        <label for="tons_per_hectare">Tons per Hectare (Yield) <span class="tooltip-icon" data-tooltip="Expected yield in metric tons per hectare. Moderate smallholder with improved varieties: 5-20 t/ha. Default 10 for northern Haiti rainfed conditions.">i</span></label>
-                        <input type="number" step="0.1" id="tons_per_hectare" value="10" min="0.1" required>
+                        <label for="tons_per_hectare">Tons per Hectare (Yield) <span class="tooltip-icon" data-tooltip="Expected tuber yield per hectare. Haiti rainfed: 8-12. Irrigated tropics: 15-25. Best practice: 30+. Default 10.">i</span></label>
+                        <input type="number" step="0.1" id="tons_per_hectare" value="10" min="0.1" max="40" required>
 
                         <label for="tons_harvest_percent">Harvest % for Tonnage <span class="tooltip-icon" data-tooltip="Fraction of total production that is harvestable. 0.90 = 90% harvest efficiency. Range: 0.01 - 1.0.">i</span></label>
                         <input type="number" step="0.01" id="tons_harvest_percent" value="0.90" min="0.01" max="1" required>

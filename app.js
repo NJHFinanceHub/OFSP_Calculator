@@ -212,15 +212,6 @@ function validateForm() {
             }
         }
 
-        // initial_hectares: 0.01 - 10000
-        if (input.id === 'initial_hectares') {
-            if (val < 0.01 || val > 10000) {
-                markInvalid(input, 'Hectares must be between 0.01 and 10,000');
-                allValid = false;
-                return;
-            }
-        }
-
         // initial_slips: positive integer
         if (input.id === 'initial_slips') {
             if (val <= 0 || !Number.isInteger(val)) {
@@ -262,36 +253,32 @@ function getInputs() {
             inputs[element.id] = Number.isFinite(val) ? val : 0;
         }
     }
-    const yieldModeRadio = form.querySelector('input[name="yield_mode"]:checked');
-    inputs.yield_mode = yieldModeRadio ? yieldModeRadio.value : 'per_hectare';
     return inputs;
 }
 
 /**
  * Calculates a single generation's harvest and cost.
- * Supports two yield modes:
- *   - "per_hectare": tons = hectares * tons_per_hectare * harvest%, potatoes derived backward
- *   - "per_plant": tons = slips * potatoes/plant * lossFactor * grams/ton (original logic)
+ *
+ * Area is derived from slips / planting density (not manually specified).
+ * Yield formula: tons = (slips / density) * yield_per_ha * harvest% * yieldFraction
  *
  * isSubGen: true for vine-cutting sub-generations (1a/1b/1c etc.)
  *   Sub-gens yield a reduced fraction (yieldFraction) and only incur
  *   maintenance costs (no land clearing, forking, herbicide, slip purchase).
  */
-function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, includeSlipCost, isSubGen, yieldFraction) {
+function calcGeneration(name, slipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, includeSlipCost, isSubGen, yieldFraction) {
     isSubGen = isSubGen || false;
     yieldFraction = yieldFraction || 1.0;
 
-    let potatoesHarvested, tonsHarvested;
+    // Derive area from slips and planting density
+    const plantingDensity = inputs.planting_density || 33000;
+    const hectares = plantingDensity > 0 ? slipsPlanted / plantingDensity : 0;
 
-    if (inputs.yield_mode === 'per_hectare') {
-        tonsHarvested = hectares * inputs.tons_per_hectare * inputs.tons_harvest_percent * yieldFraction;
-        potatoesHarvested = inputs.grams_per_potato > 0
-            ? (tonsHarvested * inputs.grams_per_ton) / inputs.grams_per_potato
-            : 0;
-    } else {
-        potatoesHarvested = slipsPlanted * inputs.potatoes_per_plant * lossFactor;
-        tonsHarvested = (potatoesHarvested * inputs.grams_per_potato / inputs.grams_per_ton) * inputs.tons_harvest_percent;
-    }
+    // Area-based yield: tons = area * yield_per_ha * harvest% * yieldFraction
+    const tonsHarvested = hectares * inputs.tons_per_hectare * inputs.tons_harvest_percent * yieldFraction;
+    const potatoesHarvested = inputs.grams_per_potato > 0
+        ? (tonsHarvested * inputs.grams_per_ton) / inputs.grams_per_potato
+        : 0;
 
     const caloriesPerTon = inputs.grams_per_ton > 0 && inputs.grams_per_potato > 0
         ? (inputs.grams_per_ton / inputs.grams_per_potato) * inputs.calories_per_potato_with_leaves
@@ -303,7 +290,6 @@ function calcGeneration(name, hectares, slipsPlanted, inputs, lossFactor, costPe
 
     let cost;
     if (isSubGen) {
-        // Sub-generations only pay maintenance costs (weeding, harvesting, fertilizer app)
         cost = maintenanceCostPerHectare * hectares;
     } else {
         const slipCost = includeSlipCost ? slipsPlanted * inputs.cost_slip_per_unit : 0;
@@ -365,38 +351,38 @@ function calculateSimulation(inputs) {
     const subGenYields = [0.40, 0.25, 0.15];
 
     // --- Generation 1 ---
-    const gen1 = calcGeneration("Generation 1", inputs.initial_hectares, inputs.initial_slips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, true, false, 1.0);
+    const gen1 = calcGeneration("Generation 1", inputs.initial_slips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, true, false, 1.0);
 
     // --- Gen 1a, 1b, 1c: vine cutting regrowth from Gen 1 plants ---
     // Vine cutting slips use crop_survival (not slip_survival again) to avoid double-penalizing
     const vineCuttingSlips = gen1.potatoes_harvested > 0
         ? (gen1.slips_planted * inputs.crop_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
-    const gen1a = calcGeneration("Gen 1a (vine)", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
-    const gen1b = calcGeneration("Gen 1b (vine)", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
-    const gen1c = calcGeneration("Gen 1c (vine)", gen1.hectares, vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
+    const gen1a = calcGeneration("Gen 1a (vine)", vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
+    const gen1b = calcGeneration("Gen 1b (vine)", vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
+    const gen1c = calcGeneration("Gen 1c (vine)", vineCuttingSlips, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
 
     // --- Generation 2: replanted tubers from Gen 1 ---
     const gen2SlipsPlanted = gen1.potatoes_harvested * inputs.replant_percent * inputs.slips_from_replant;
-    const gen2 = calcGeneration("Generation 2", inputs.hectares_gen_2, gen2SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, false, 1.0);
+    const gen2 = calcGeneration("Generation 2", gen2SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, false, 1.0);
 
     const vineCuttingSlips2 = gen2.potatoes_harvested > 0
         ? (gen2.slips_planted * inputs.crop_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
-    const gen2a = calcGeneration("Gen 2a (vine)", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
-    const gen2b = calcGeneration("Gen 2b (vine)", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
-    const gen2c = calcGeneration("Gen 2c (vine)", gen2.hectares, vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
+    const gen2a = calcGeneration("Gen 2a (vine)", vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
+    const gen2b = calcGeneration("Gen 2b (vine)", vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
+    const gen2c = calcGeneration("Gen 2c (vine)", vineCuttingSlips2, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
 
     // --- Generation 3: replanted tubers from Gen 2 ---
     const gen3SlipsPlanted = gen2.potatoes_harvested * inputs.replant_percent * inputs.slips_from_replant;
-    const gen3 = calcGeneration("Generation 3", inputs.hectares_gen_3, gen3SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, false, 1.0);
+    const gen3 = calcGeneration("Generation 3", gen3SlipsPlanted, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, false, 1.0);
 
     const vineCuttingSlips3 = gen3.potatoes_harvested > 0
         ? (gen3.slips_planted * inputs.crop_survival_rate) * inputs.vine_cuttings_per_plant
         : 0;
-    const gen3a = calcGeneration("Gen 3a (vine)", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
-    const gen3b = calcGeneration("Gen 3b (vine)", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
-    const gen3c = calcGeneration("Gen 3c (vine)", gen3.hectares, vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
+    const gen3a = calcGeneration("Gen 3a (vine)", vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[0]);
+    const gen3b = calcGeneration("Gen 3b (vine)", vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[1]);
+    const gen3c = calcGeneration("Gen 3c (vine)", vineCuttingSlips3, inputs, lossFactor, costPerHectareNoSlips, maintenanceCostPerHectare, false, true, subGenYields[2]);
 
     const allGens = [
         gen1, gen1a, gen1b, gen1c,
@@ -407,6 +393,7 @@ function calculateSimulation(inputs) {
     const totalDaysFed = allGens.reduce((sum, g) => sum + g.days_fed, 0);
     const totalCost = allGens.reduce((sum, g) => sum + g.cost, 0);
     const totalTons = allGens.reduce((sum, g) => sum + g.tons_harvested, 0);
+    const totalHectares = allGens.reduce((sum, g) => sum + g.hectares, 0);
     const costPerPersonFullPeriod = inputs.people_to_feed > 0 ? totalCost / inputs.people_to_feed : 0;
     const costPerPersonPerDay = (totalDaysFed > 0 && inputs.people_to_feed > 0)
         ? totalCost / (totalDaysFed * inputs.people_to_feed)
@@ -432,6 +419,7 @@ function calculateSimulation(inputs) {
         total_days_fed: totalDaysFed,
         total_cost: totalCost,
         total_tons: totalTons,
+        total_hectares: totalHectares,
         cost_per_person_full_period: costPerPersonFullPeriod,
         cost_per_person_per_day: costPerPersonPerDay,
         total_vitamin_a_child_days: totalVitaminAChildDays,
@@ -457,6 +445,7 @@ function displayResults(results, inputs) {
         <tr>
             <td>${gen.name}</td>
             <td>${fInt(gen.slips_planted)}</td>
+            <td>${fNum(gen.hectares, 2)}</td>
             <td class="highlight">${fNum(gen.tons_harvested)}</td>
             <td>${fNum(gen.days_fed, 1)}</td>
             <td>${fInt(gen.vitamin_a_child_days)}</td>
@@ -507,6 +496,10 @@ function displayResults(results, inputs) {
                     <p>${fNum(results.total_tons, 1)}</p>
                 </div>
                 <div class="summary-item">
+                    <h3>Total Area Planted</h3>
+                    <p>${fNum(results.total_hectares, 2)} ha (${fNum(results.total_hectares * 2.47105, 1)} acres)</p>
+                </div>
+                <div class="summary-item">
                     <h3>Cost${cycleLabel}</h3>
                     <p>${fDol(results.total_cost)}</p>
                 </div>
@@ -538,6 +531,7 @@ function displayResults(results, inputs) {
                 <tr>
                     <th>Generation</th>
                     <th>Slips Planted</th>
+                    <th>Area (ha)</th>
                     <th>Tons Harvested</th>
                     <th>Days Fed</th>
                     <th>VA Child-Days</th>
@@ -549,6 +543,7 @@ function displayResults(results, inputs) {
                 <tr class="totals-row">
                     <td><strong>Total</strong></td>
                     <td></td>
+                    <td><strong>${fNum(results.total_hectares, 2)}</strong></td>
                     <td class="highlight"><strong>${fNum(results.total_tons)}</strong></td>
                     <td><strong>${fNum(results.total_days_fed, 1)}</strong></td>
                     <td><strong>${fInt(results.total_vitamin_a_child_days)}</strong></td>
@@ -589,8 +584,8 @@ function displayResults(results, inputs) {
 function getSensitivityInputOptions() {
     const options = [
         { id: 'initial_slips', label: 'Initial Slips' },
-        { id: 'initial_hectares', label: 'Initial Hectares' },
-        { id: 'tons_per_hectare', label: 'Tons per Hectare' },
+        { id: 'planting_density', label: 'Planting Density (slips/ha)' },
+        { id: 'tons_per_hectare', label: 'Tons per Hectare (Yield)' },
         { id: 'tons_harvest_percent', label: 'Harvest %' },
         { id: 'potatoes_per_plant', label: 'Potatoes per Plant' },
         { id: 'vine_cuttings_per_plant', label: 'Vine Cuttings per Plant' },
@@ -703,6 +698,7 @@ function populateScenarioDropdowns() {
         document.getElementById('scenario-select'),
         document.getElementById('compare-a'),
         document.getElementById('compare-b'),
+        document.getElementById('compare-c'),
     ];
 
     selects.forEach((sel, i) => {
@@ -710,6 +706,7 @@ function populateScenarioDropdowns() {
             '<option value="">-- Load a scenario --</option>',
             '<option value="">-- Scenario A --</option>',
             '<option value="">-- Scenario B --</option>',
+            '<option value="">-- Scenario C (optional) --</option>',
         ];
         sel.innerHTML = defaults[i] + names.map(n =>
             `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`
@@ -727,37 +724,92 @@ function getInputFieldLabels() {
     return labels;
 }
 
-function showComparison(nameA, dataA, nameB, dataB) {
+function showComparison(scenarios) {
+    // scenarios = [ { name, data }, { name, data }, ... ] (2 or 3)
     const container = document.getElementById('comparison-container');
     const labels = getInputFieldLabels();
-    const allKeys = [...new Set([...Object.keys(dataA), ...Object.keys(dataB)])];
+    const allKeys = [...new Set(scenarios.flatMap(s => Object.keys(s.data)))];
 
-    const rows = allKeys.map(key => {
-        const valA = dataA[key] ?? '';
-        const valB = dataB[key] ?? '';
-        const changed = valA !== valB;
+    const fNum = (num, dec = 2) => Number.isFinite(num) ? num.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '0';
+    const fDol = (num) => Number.isFinite(num) ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) : '$0';
+
+    // Input parameter comparison
+    const inputRows = allKeys.map(key => {
+        const vals = scenarios.map(s => s.data[key] ?? '');
+        const changed = vals.some(v => v !== vals[0]);
         const label = labels[key] || key;
+        const cells = vals.map(v => `<td>${escapeHtml(String(v))}</td>`).join('');
         return `<tr class="${changed ? 'changed' : ''}">
             <td>${escapeHtml(String(label))}</td>
-            <td>${escapeHtml(String(valA))}</td>
-            <td>${escapeHtml(String(valB))}</td>
+            ${cells}
             <td class="diff-indicator ${changed ? 'changed' : ''}">${changed ? '\u0394' : ''}</td>
         </tr>`;
     }).join('');
 
+    const headerCells = scenarios.map(s => `<th>${escapeHtml(s.name)}</th>`).join('');
+
+    // Run simulations for each scenario and build output comparison
+    const simResults = scenarios.map(s => {
+        try { return calculateSimulation(s.data); }
+        catch { return null; }
+    });
+
+    const outputMetrics = [
+        { label: 'Total Tons Harvested', fn: r => fNum(r.total_tons, 1) },
+        { label: 'Total Area Planted (ha)', fn: r => fNum(r.total_hectares, 2) },
+        { label: 'Total Days Fed', fn: r => fNum(r.total_days_fed, 1) },
+        { label: 'Total Cost', fn: r => fDol(r.total_cost) },
+        { label: 'Cost per Person (Full Period)', fn: r => fDol(r.cost_per_person_full_period) },
+        { label: 'Cost per Person per Day', fn: r => '$' + fNum(r.cost_per_person_per_day, 4) },
+        { label: 'VA Child-Days (millions)', fn: r => fNum(r.total_vitamin_a_child_days / 1000000, 2) },
+        { label: 'Children Annual VA Met', fn: r => fNum(r.children_annual_va_met, 0) },
+        { label: 'Annual Tons', fn: r => fNum(r.annual_tons, 1) },
+        { label: 'Annual Days Fed', fn: r => fNum(r.annual_days_fed, 1) },
+        { label: 'Annual Cost', fn: r => fDol(r.annual_cost) },
+    ];
+
+    const outputRows = outputMetrics.map(metric => {
+        const cells = simResults.map(r => {
+            if (!r) return '<td>Error</td>';
+            return `<td>${metric.fn(r)}</td>`;
+        }).join('');
+        return `<tr><td><strong>${metric.label}</strong></td>${cells}<td></td></tr>`;
+    }).join('');
+
+    // Per-generation comparison
+    const genNames = simResults[0] ? simResults[0].all_gens.map(g => g.name) : [];
+    const genRows = genNames.map((genName, gi) => {
+        const cells = simResults.map(r => {
+            if (!r || !r.all_gens[gi]) return '<td>—</td>';
+            const g = r.all_gens[gi];
+            return `<td>${fNum(g.tons_harvested, 2)} t / ${fNum(g.hectares, 2)} ha</td>`;
+        }).join('');
+        return `<tr><td>${escapeHtml(genName)}</td>${cells}<td></td></tr>`;
+    }).join('');
+
     container.innerHTML = `
-        <h2>Comparing: ${escapeHtml(nameA)} vs ${escapeHtml(nameB)}</h2>
+        <h2>Scenario Comparison: ${scenarios.map(s => escapeHtml(s.name)).join(' vs ')}</h2>
+
+        <h3 style="margin-top:1rem;">Output Results</h3>
         <table class="comparison-table">
-            <thead>
-                <tr>
-                    <th>Parameter</th>
-                    <th>${escapeHtml(nameA)}</th>
-                    <th>${escapeHtml(nameB)}</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>${rows}</tbody>
+            <thead><tr><th>Metric</th>${headerCells}<th></th></tr></thead>
+            <tbody>${outputRows}</tbody>
         </table>
+
+        <h3 style="margin-top:1rem;">Per-Generation Breakdown (tons / area)</h3>
+        <table class="comparison-table">
+            <thead><tr><th>Generation</th>${headerCells}<th></th></tr></thead>
+            <tbody>${genRows}</tbody>
+        </table>
+
+        <details style="margin-top:1rem;">
+            <summary style="cursor:pointer;font-weight:600;">Input Parameter Differences</summary>
+            <table class="comparison-table" style="margin-top:0.5rem;">
+                <thead><tr><th>Parameter</th>${headerCells}<th></th></tr></thead>
+                <tbody>${inputRows}</tbody>
+            </table>
+        </details>
+
         <button type="button" class="btn-close-compare" onclick="document.getElementById('comparison-container').style.display='none'">Close Comparison</button>
     `;
     container.style.display = 'block';
@@ -767,10 +819,10 @@ function exportCSV() {
     const inputs = getInputs();
     const results = calculateSimulation(inputs);
     const rows = [
-        ['Generation', 'Hectares', 'Slips Planted', 'Potatoes Harvested', 'Tons Harvested', 'Days Fed', 'VA Child-Days', 'Cost'],
+        ['Generation', 'Slips Planted', 'Area (ha)', 'Potatoes Harvested', 'Tons Harvested', 'Days Fed', 'VA Child-Days', 'Cost'],
     ];
     results.all_gens.forEach(gen => {
-        rows.push([gen.name, gen.hectares, gen.slips_planted, gen.potatoes_harvested, gen.tons_harvested, gen.days_fed, gen.vitamin_a_child_days, gen.cost]);
+        rows.push([gen.name, gen.slips_planted, gen.hectares.toFixed(2), gen.potatoes_harvested, gen.tons_harvested, gen.days_fed, gen.vitamin_a_child_days, gen.cost]);
     });
     rows.push([]);
     rows.push(['Summary']);
@@ -980,13 +1032,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data) return;
         const form = document.getElementById('calc-form');
         for (const [key, val] of Object.entries(data)) {
-            if (key === 'yield_mode') {
-                const radio = form.querySelector(`input[name="yield_mode"][value="${val}"]`);
-                if (radio) radio.checked = true;
-            } else {
-                const el = form.elements[key];
-                if (el) { el.value = val; }
-            }
+            if (key === 'yield_mode') continue; // Legacy field, skip
+            const el = form.elements[key];
+            if (el) { el.value = val; }
         }
         form.dispatchEvent(new Event('input'));
     });
@@ -1004,10 +1052,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-compare').addEventListener('click', () => {
         const nameA = document.getElementById('compare-a').value;
         const nameB = document.getElementById('compare-b').value;
-        if (!nameA || !nameB) { alert('Select two scenarios to compare.'); return; }
-        if (nameA === nameB) { alert('Select two different scenarios.'); return; }
-        const scenarios = getSavedScenarios();
-        showComparison(nameA, scenarios[nameA], nameB, scenarios[nameB]);
+        const nameC = document.getElementById('compare-c').value;
+        if (!nameA || !nameB) { alert('Select at least two scenarios to compare.'); return; }
+        const selected = [nameA, nameB];
+        if (nameC) selected.push(nameC);
+        const uniqueNames = [...new Set(selected)];
+        if (uniqueNames.length < 2) { alert('Select at least two different scenarios.'); return; }
+        const savedScenarios = getSavedScenarios();
+        const scenarioList = uniqueNames.map(name => ({ name, data: savedScenarios[name] }));
+        if (scenarioList.some(s => !s.data)) { alert('One or more selected scenarios not found.'); return; }
+        showComparison(scenarioList);
     });
   } catch (initErr) {
     console.error('Scenario panel initialization error:', initErr);
@@ -1021,3 +1075,24 @@ document.addEventListener('click', (e) => {
     currentMetric = e.target.dataset.metric;
     if (lastResults) renderChart(lastResults);
 });
+
+// --- Country Presets ---
+const COUNTRY_PRESETS = {
+    haiti:       { tons_per_hectare: 10, planting_density: 33000 },
+    nigeria:     { tons_per_hectare: 8,  planting_density: 33000 },
+    malawi:      { tons_per_hectare: 7,  planting_density: 30000 },
+    india:       { tons_per_hectare: 18, planting_density: 35000 },
+    ethiopia:    { tons_per_hectare: 9,  planting_density: 33000 },
+    philippines: { tons_per_hectare: 12, planting_density: 33000 },
+};
+
+function applyCountryPreset(presetKey) {
+    const preset = COUNTRY_PRESETS[presetKey];
+    if (!preset) return; // 'custom' — do nothing
+    const form = document.getElementById('calc-form');
+    for (const [key, val] of Object.entries(preset)) {
+        const el = form.elements[key];
+        if (el) el.value = val;
+    }
+    form.dispatchEvent(new Event('input'));
+}

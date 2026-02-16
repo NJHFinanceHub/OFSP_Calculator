@@ -312,6 +312,7 @@ button[type="submit"]:active {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .scenario-controls input[type="text"] {
